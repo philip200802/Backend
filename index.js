@@ -22,6 +22,10 @@ mongoose.connect(URI)
     console.error("Error connecting to MongoDB:", err);
 });
 
+app.get("/", (req, res) => {
+    res.send("Welcome to the Finvo Backend API! It is running perfectly.");
+});
+
 
 app.use("/invoice", invoiceRoute);
 

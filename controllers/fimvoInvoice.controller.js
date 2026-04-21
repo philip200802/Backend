@@ -1,10 +1,13 @@
 const invoice = require('../Models/finvoInvoice.model');
+const nodemailer = require('nodemailer');
 
 const createInvoice = async (req, res) => { 
     try {
         const { clientName, amount, status, owner } = req.body;
         const newInvoice = await invoice.create({ clientName, amount, status, owner });
         res.status(201).json({ message: "Invoice created", invoiceId: newInvoice._id });
+
+        let transporter
     } catch (err) {
         res.status(500).json({ message: "Failed to create invoice", error: err.message });
     }
