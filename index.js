@@ -7,20 +7,22 @@ const userRoute = require("./routes/finvoUser.route");
 const invoiceRoute = require("./routes/finvoInvoice.route");
 
 dotenv.config();
-const port = process.env.PORT||2008
-const URI = process.env.MONGO_URI; 
+const port = process.env.PORT || 2008
+const URI = process.env.MONGO_URI;
+app.set("view engine", "ejs");
+app.set("views", __dirname + "/Views");
 app.use(cors());
 app.use(express.json());
-app.use(express.urlencoded({ extended: true}))
+app.use(express.urlencoded({ extended: true }))
 
 
 mongoose.connect(URI)
-.then(() => {
-    console.log("Connected to MongoDB");
-})
-.catch((err) => {
-    console.error("Error connecting to MongoDB:", err);
-});
+    .then(() => {
+        console.log("Connected to MongoDB");
+    })
+    .catch((err) => {
+        console.error("Error connecting to MongoDB:", err);
+    });
 
 app.get("/", (req, res) => {
     res.send("Welcome to the Finvo Backend API! It is running perfectly.");
@@ -36,7 +38,7 @@ app.use("/user", userRoute);
 
 
 
-app.listen(port, ()=> {
+app.listen(port, () => {
     console.log(`I am runnng on port ${port}`)
-    
+
 })
