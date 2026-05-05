@@ -39,6 +39,6 @@ app.use("/user", userRoute);
 
 
 app.listen(port, () => {
-    console.log(`I am runnng on port ${port}`)
+    console.log(`I am running on port ${port}`)
 
 })

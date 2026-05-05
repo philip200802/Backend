@@ -1,9 +1,9 @@
 const invoice = require('../Models/finvoInvoice.model');
 const nodemailer = require('nodemailer');
 
-const createInvoice = async (req, res) => { 
+const createInvoice = async (req, res) => {
     try {
-        const { clientName, amount, status, owner } = req.body;
+        const { clientName, amount, status, owner, clientEmail } = req.body;
         const newInvoice = await invoice.create({ clientName, amount, status, owner });
         res.status(201).json({ message: "Invoice created", invoiceId: newInvoice._id });
 
@@ -13,12 +13,13 @@ const createInvoice = async (req, res) => {
                 user: process.env.Email_user,
                 pass: process.env.Email_passkey
             }
-        });  
+        });
         let mailOptions = {
             from: process.env.Email_user,
-            to: email,
+            to: clientEmail,
             html: `<p>Dear ${clientName},</p><p>Your invoice for the amount of $${amount} has been created with status: ${status}.</p><p>Thank you for your business!</p>`
         };
+        await transporter.sendMail(mailOptions);
     } catch (err) {
         res.status(500).json({ message: "Failed to create invoice", error: err.message });
     }

@@ -6,7 +6,7 @@ const jwt = require("jsonwebtoken");
 const JWT_Secret = process.env.JWT_SECRET || process.env.jwt_secret;
 
 const createToken = (user) =>
-  jwt.sign({ id: user._id, email: user.email }, JWT_Secret, { expiresIn: "1d" });
+  jwt.sign({ id: user._id, email: user.email }, JWT_Secret, { expiresIn: "1h" });
 
 
 
