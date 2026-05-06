@@ -1,13 +1,13 @@
-const express = require('express')
-const app = express();
 const dotenv = require('dotenv');
+dotenv.config();
+
+const express = require('express');
+const app = express();
 const cors = require('cors');
 const mongoose = require('mongoose');
-const userRoute = require("./routes/finvoUser.route");
-const invoiceRoute = require("./routes/finvoInvoice.route");
 
-dotenv.config();
-const port = process.env.PORT || 2008
+const userRoute = require("./routes/finvoUser.route");
+const invoiceRoute = require("./routes/finvoInvoice.route");const port = process.env.PORT || 2008
 const URI = process.env.MONGO_URI;
 app.set("view engine", "ejs");
 app.set("views", __dirname + "/Views");
