@@ -11,18 +11,18 @@ const {
     generateInvoicePDF 
 } = require('../controllers/fimvoInvoice.controller');   
 
-// CRUD Routes
+// Specific routes FIRST
 router.post('/create', createInvoice);
 router.get('/all', getInvoices);
-router.get('/:id', getInvoiceById);
-router.put('/:id', updateInvoice);
-router.delete('/:id', deleteInvoice);
+router.get('/download', generateInvoicePDF);
 
-// Payment Routes
+// Payment Routes (before parameterized /:id)
 router.post('/:id/payment', recordPayment);
 router.get('/:id/payments', getPaymentHistory);
 
-// PDF Route
-router.get('/download', generateInvoicePDF);
+// Parameterized Routes LAST
+router.get('/:id', getInvoiceById);
+router.put('/:id', updateInvoice);
+router.delete('/:id', deleteInvoice);
 
 module.exports = router;

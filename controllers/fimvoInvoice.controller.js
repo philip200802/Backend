@@ -7,30 +7,41 @@ const path = require('path');
 const createInvoice = async (req, res) => {
     try {
         const { clientName, amount, status, owner, clientEmail, dueDate, description } = req.body;
-        const newInvoice = await invoice.create({ 
-            clientName, 
-            amount, 
-            status, 
-            owner, 
-            dueDate, 
+        if (!clientName || amount === undefined || !status || !owner) {
+            return res.status(400).json({ message: "clientName, amount, status, and owner are required" });
+        }
+
+        const newInvoice = await invoice.create({
+            clientName,
+            amount,
+            status,
+            owner,
+            dueDate,
             description,
-            amountDue: amount 
+            amountDue: amount
         });
+
         res.status(201).json({ message: "Invoice created", invoiceId: newInvoice._id });
 
-        let transporter = nodemailer.createTransport({
-            service: 'gmail',
-            auth: {
-                user: process.env.Email_user,
-                pass: process.env.Email_passkey
+        if (clientEmail) {
+            try {
+                let transporter = nodemailer.createTransport({
+                    service: 'gmail',
+                    auth: {
+                        user: process.env.Email_user,
+                        pass: process.env.Email_passkey
+                    }
+                });
+                let mailOptions = {
+                    from: process.env.Email_user,
+                    to: clientEmail,
+                    html: `<p>Dear ${clientName},</p><p>Your invoice for the amount of $${amount} has been created with status: ${status}.</p><p>Thank you for your business!</p>`
+                };
+                await transporter.sendMail(mailOptions);
+            } catch (mailErr) {
+                console.error("Invoice created, but email notification failed:", mailErr.message);
             }
-        });
-        let mailOptions = {
-            from: process.env.Email_user,
-            to: clientEmail,
-            html: `<p>Dear ${clientName},</p><p>Your invoice for the amount of $${amount} has been created with status: ${status}.</p><p>Thank you for your business!</p>`
-        };
-        await transporter.sendMail(mailOptions);
+        }
     } catch (err) {
         res.status(500).json({ message: "Failed to create invoice", error: err.message });
     }
@@ -62,7 +73,7 @@ const getInvoiceById = async (req, res) => {
 const updateInvoice = async (req, res) => {
     try {
         const { clientName, amount, status, dueDate, description } = req.body;
-        
+
         const updatedInvoice = await invoice.findByIdAndUpdate(
             req.params.id,
             { clientName, amount, status, dueDate, description },
@@ -83,7 +94,7 @@ const updateInvoice = async (req, res) => {
 const deleteInvoice = async (req, res) => {
     try {
         const deletedInvoice = await invoice.findByIdAndDelete(req.params.id);
-        
+
         if (!deletedInvoice) {
             return res.status(404).json({ message: "Invoice not found" });
         }
@@ -145,7 +156,7 @@ const getPaymentHistory = async (req, res) => {
 const generateInvoicePDF = async (req, res) => {
     try {
         const { startMonth, startYear, endMonth, endYear } = req.query;
-        
+
         if (!startMonth || !startYear) {
             return res.status(400).json({ message: "startMonth and startYear are required" });
         }
@@ -165,8 +176,8 @@ const generateInvoicePDF = async (req, res) => {
         }
 
         const doc = new PDFDocument();
-        const dateRange = startMonth === endM && startYear === endY 
-            ? `${startMonth}/${startYear}` 
+        const dateRange = startMonth === endM && startYear === endY
+            ? `${startMonth}/${startYear}`
             : `${startMonth}/${startYear}-${endM}/${endY}`;
         const filename = `invoices-${dateRange}.pdf`;
         const filepath = path.join(__dirname, '../pdfs', filename);
