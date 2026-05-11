@@ -17,14 +17,15 @@ const createInvoice = async (req, res) => {
 
         const token = authHeader.split(" ")[1];
         const decoded = jwt.verify(token, JWT_Secret);
-
         const owner = decoded.id;
+
+        if (!owner) {
+            return res.status(400).json({ message: "Invalid token - no user ID" });
+        }
 
         // ================= DATA =================
         const {
             clientName,
-            amount,
-            status,
             dueDate,
             description,
             clientEmail,
@@ -32,71 +33,122 @@ const createInvoice = async (req, res) => {
         } = req.body;
 
         // Validate inputs
-        if (!clientName) {
+        if (!clientName || clientName.trim() === "") {
             return res.status(400).json({ message: "Client name is required" });
         }
 
-        if (!amount || amount <= 0) {
-            return res.status(400).json({ message: "Invalid amount" });
+        if (!Array.isArray(items) || items.length === 0) {
+            return res.status(400).json({ message: "Items array is required and must have at least 1 item" });
         }
 
-        // Process items
-        const formattedItems = Array.isArray(items)
-            ? items.map(item => ({
-                description: item.description,
-                qty: Number(item.qty),
-                unitPrice: Number(item.unitPrice),
-                total: Number(item.qty) * Number(item.unitPrice)
-            }))
-            : [];
+        // Validate and process items
+        const formattedItems = [];
+        let calculatedAmount = 0;
 
-        // Create invoice
+        for (let item of items) {
+            if (!item.description || item.description.trim() === "") {
+                return res.status(400).json({ message: "Item description is required" });
+            }
+
+            const qty = Number(item.qty);
+            const unitPrice = Number(item.unitPrice);
+
+            if (isNaN(qty) || qty <= 0) {
+                return res.status(400).json({ message: "Item quantity must be greater than 0" });
+            }
+
+            if (isNaN(unitPrice) || unitPrice <= 0) {
+                return res.status(400).json({ message: "Item unit price must be greater than 0" });
+            }
+
+            const total = qty * unitPrice;
+            calculatedAmount += total;
+
+            formattedItems.push({
+                description: item.description.trim(),
+                qty,
+                unitPrice,
+                total
+            });
+        }
+
+        // Create invoice with server-calculated amount
         const newInvoice = await invoice.create({
-            clientName,
-            amount,
-            status: status || "Pending",
+            clientName: clientName.trim(),
+            amount: calculatedAmount,  // Calculate from items, don't trust frontend
+            status: "Pending",
             owner,
             dueDate,
-            description,
-            amountDue: amount,
+            description: description || "",
+            amountDue: calculatedAmount,
+            amountPaid: 0,
             items: formattedItems
         });
 
         // ================= RESPONSE FIRST =================
         res.status(201).json({
-            message: "Invoice created",
-            invoiceId: newInvoice._id
+            message: "Invoice created successfully",
+            invoiceId: newInvoice._id,
+            amount: calculatedAmount
         });
 
         // ================= EMAIL (ASYNC) =================
+        const transporter = nodemailer.createTransport({
+            service: "gmail",
+            auth: {
+                user: process.env.Email_user,
+                pass: process.env.Email_passkey,
+            },
+        });
+
+        // Send email to CLIENT
         if (clientEmail) {
             try {
-                const transporter = nodemailer.createTransport({
-                    service: "gmail",
-                    auth: {
-                        user: process.env.Email_user,
-                        pass: process.env.Email_passkey,
-                    },
-                });
-
                 await transporter.sendMail({
                     from: process.env.Email_user,
                     to: clientEmail,
                     subject: "Invoice Created - Finvo",
                     html: `
-                        <div style="font-family:Arial;padding:20px">
-                            <h2>Invoice Created</h2>
-                            <p>Hi ${clientName},</p>
-                            <p>Your invoice of <b>₦${amount}</b> has been created.</p>
-                            <p>Status: ${status || "Pending"}</p>
+                        <div style="font-family:Arial;padding:20px;background:#f4f6f8">
+                            <div style="max-width:600px;margin:20px auto;background:#fff;padding:20px;border-radius:8px">
+                                <h2>Invoice Created</h2>
+                                <p>Hi ${clientName},</p>
+                                <p>Your invoice of <b>₦${calculatedAmount}</b> has been created.</p>
+                                <p>Due Date: ${dueDate ? new Date(dueDate).toLocaleDateString() : 'Not specified'}</p>
+                                <p>Status: Pending</p>
+                                <p>Please make payment at your earliest convenience.</p>
+                            </div>
                         </div>
                     `,
                 });
-
-                console.log("Invoice email sent");
+                console.log("Invoice email sent to client:", clientEmail);
             } catch (emailErr) {
-                console.log("Email error:", emailErr.message);
+                console.log("Client email error:", emailErr.message);
             }
+        }
+
+        // Send email to ADMIN
+        try {
+            await transporter.sendMail({
+                from: process.env.Email_user,
+                to: process.env.Email_user,
+                subject: "New Invoice Created - Finvo",
+                html: `
+                    <div style="font-family:Arial;padding:20px;background:#f4f6f8">
+                        <div style="max-width:600px;margin:20px auto;background:#fff;padding:20px;border-radius:8px">
+                            <h2>New Invoice Created</h2>
+                            <p>Client: ${clientName}</p>
+                            <p>Amount: ₦${calculatedAmount}</p>
+                            <p>Items: ${formattedItems.length}</p>
+                            <p>Due Date: ${dueDate ? new Date(dueDate).toLocaleDateString() : 'Not specified'}</p>
+                            <p>Invoice ID: ${newInvoice._id}</p>
+                        </div>
+                    </div>
+                `,
+            });
+            console.log("Admin notification sent");
+        } catch (adminEmailErr) {
+            console.log("Admin email error:", adminEmailErr.message);
         }
 
     } catch (err) {
@@ -110,6 +162,7 @@ const createInvoice = async (req, res) => {
 
 const getInvoices = async (req, res) => {
     try {
+        // ================= AUTH =================
         const authHeader = req.headers.authorization;
 
         if (!authHeader || !authHeader.startsWith("Bearer ")) {
@@ -119,11 +172,21 @@ const getInvoices = async (req, res) => {
         const token = authHeader.split(" ")[1];
         const decoded = jwt.verify(token, JWT_Secret);
 
+        if (!decoded.id) {
+            return res.status(400).json({ message: "Invalid token" });
+        }
+
+        // ================= GET INVOICES FOR THIS USER =================
         const invoices = await invoice
             .find({ owner: decoded.id })
+            .sort({ createdAt: -1 })
             .populate('owner', 'firstName lastName email');
 
-        res.json(invoices);
+        res.status(200).json({
+            message: "Invoices retrieved successfully",
+            count: invoices.length,
+            invoices
+        });
     } catch (err) {
         res.status(500).json({
             message: "Failed to fetch invoices",
@@ -135,11 +198,31 @@ const getInvoices = async (req, res) => {
 // GET single invoice
 const getInvoiceById = async (req, res) => {
     try {
+        // ================= AUTH =================
+        const authHeader = req.headers.authorization;
+
+        if (!authHeader || !authHeader.startsWith("Bearer ")) {
+            return res.status(401).json({ message: "No token provided" });
+        }
+
+        const token = authHeader.split(" ")[1];
+        const decoded = jwt.verify(token, JWT_Secret);
+
+        // ================= GET INVOICE =================
         const inv = await invoice.findById(req.params.id).populate('owner', 'firstName lastName email');
         if (!inv) {
             return res.status(404).json({ message: "Invoice not found" });
         }
-        res.json(inv);
+
+        // Verify ownership
+        if (inv.owner._id.toString() !== decoded.id) {
+            return res.status(403).json({ message: "Unauthorized - invoice does not belong to you" });
+        }
+
+        res.status(200).json({
+            message: "Invoice retrieved successfully",
+            invoice: inv
+        });
     } catch (err) {
         res.status(500).json({ message: "Failed to fetch invoice", error: err.message });
     }
@@ -148,19 +231,84 @@ const getInvoiceById = async (req, res) => {
 // UPDATE invoice
 const updateInvoice = async (req, res) => {
     try {
-        const { clientName, amount, status, dueDate, description } = req.body;
+        // ================= AUTH =================
+        const authHeader = req.headers.authorization;
 
-        const updatedInvoice = await invoice.findByIdAndUpdate(
-            req.params.id,
-            { clientName, amount, status, dueDate, description },
-            { new: true }
-        );
+        if (!authHeader || !authHeader.startsWith("Bearer ")) {
+            return res.status(401).json({ message: "No token provided" });
+        }
 
-        if (!updatedInvoice) {
+        const token = authHeader.split(" ")[1];
+        const decoded = jwt.verify(token, JWT_Secret);
+
+        // ================= VALIDATION =================
+        const { clientName, dueDate, description, items, status } = req.body;
+
+        if (clientName && clientName.trim() === "") {
+            return res.status(400).json({ message: "Client name cannot be empty" });
+        }
+
+        // ================= GET EXISTING INVOICE =================
+        const existingInvoice = await invoice.findById(req.params.id);
+        if (!existingInvoice) {
             return res.status(404).json({ message: "Invoice not found" });
         }
 
-        res.json({ message: "Invoice updated", invoice: updatedInvoice });
+        // Verify ownership
+        if (existingInvoice.owner.toString() !== decoded.id) {
+            return res.status(403).json({ message: "Unauthorized - invoice does not belong to you" });
+        }
+
+        // Don't allow updating if invoice is already paid
+        if (existingInvoice.status === 'Paid' && status !== 'Paid') {
+            return res.status(400).json({ message: "Cannot change status of a paid invoice" });
+        }
+
+        // ================= UPDATE DATA =================
+        const updateData = {};
+        if (clientName) updateData.clientName = clientName.trim();
+        if (dueDate) updateData.dueDate = dueDate;
+        if (description) updateData.description = description;
+        if (status) updateData.status = status;
+
+        // Recalculate amount if items are provided
+        if (Array.isArray(items) && items.length > 0) {
+            let newAmount = 0;
+            const formattedItems = [];
+
+            for (let item of items) {
+                const qty = Number(item.qty);
+                const unitPrice = Number(item.unitPrice);
+
+                if (qty <= 0 || unitPrice <= 0) {
+                    return res.status(400).json({ message: "Invalid item quantity or price" });
+                }
+
+                const total = qty * unitPrice;
+                newAmount += total;
+                formattedItems.push({
+                    description: item.description,
+                    qty,
+                    unitPrice,
+                    total
+                });
+            }
+
+            updateData.amount = newAmount;
+            updateData.items = formattedItems;
+        }
+
+        // ================= UPDATE INVOICE =================
+        const updatedInvoice = await invoice.findByIdAndUpdate(
+            req.params.id,
+            updateData,
+            { new: true }
+        ).populate('owner', 'firstName lastName email');
+
+        res.status(200).json({
+            message: "Invoice updated successfully",
+            invoice: updatedInvoice
+        });
     } catch (err) {
         res.status(500).json({ message: "Failed to update invoice", error: err.message });
     }
@@ -169,13 +317,39 @@ const updateInvoice = async (req, res) => {
 // DELETE invoice
 const deleteInvoice = async (req, res) => {
     try {
-        const deletedInvoice = await invoice.findByIdAndDelete(req.params.id);
+        // ================= AUTH =================
+        const authHeader = req.headers.authorization;
 
-        if (!deletedInvoice) {
+        if (!authHeader || !authHeader.startsWith("Bearer ")) {
+            return res.status(401).json({ message: "No token provided" });
+        }
+
+        const token = authHeader.split(" ")[1];
+        const decoded = jwt.verify(token, JWT_Secret);
+
+        // ================= GET INVOICE =================
+        const inv = await invoice.findById(req.params.id);
+        if (!inv) {
             return res.status(404).json({ message: "Invoice not found" });
         }
 
-        res.json({ message: "Invoice deleted", invoice: deletedInvoice });
+        // Verify ownership
+        if (inv.owner.toString() !== decoded.id) {
+            return res.status(403).json({ message: "Unauthorized - invoice does not belong to you" });
+        }
+
+        // Don't allow deleting paid invoices
+        if (inv.status === 'Paid') {
+            return res.status(400).json({ message: "Cannot delete a paid invoice" });
+        }
+
+        // ================= DELETE =================
+        const deletedInvoice = await invoice.findByIdAndDelete(req.params.id);
+
+        res.status(200).json({
+            message: "Invoice deleted successfully",
+            invoice: deletedInvoice
+        });
     } catch (err) {
         res.status(500).json({ message: "Failed to delete invoice", error: err.message });
     }
@@ -184,32 +358,84 @@ const deleteInvoice = async (req, res) => {
 // PAYMENT TRACKING - Record a payment
 const recordPayment = async (req, res) => {
     try {
+        // ================= AUTH =================
+        const authHeader = req.headers.authorization;
+
+        if (!authHeader || !authHeader.startsWith("Bearer ")) {
+            return res.status(401).json({ message: "No token provided" });
+        }
+
+        const token = authHeader.split(" ")[1];
+        const decoded = jwt.verify(token, JWT_Secret);
+
+        // ================= VALIDATION =================
         const { amountPaid, paymentMethod, notes } = req.body;
         const invoiceId = req.params.id;
 
+        if (!amountPaid || amountPaid <= 0) {
+            return res.status(400).json({ message: "Payment amount must be greater than 0" });
+        }
+
+        if (!paymentMethod || paymentMethod.trim() === "") {
+            return res.status(400).json({ message: "Payment method is required" });
+        }
+
+        // ================= FIND INVOICE =================
         const inv = await invoice.findById(invoiceId);
         if (!inv) {
             return res.status(404).json({ message: "Invoice not found" });
         }
 
-        // Add to payment history
+        // Verify ownership
+        if (inv.owner.toString() !== decoded.id) {
+            return res.status(403).json({ message: "Unauthorized - invoice does not belong to you" });
+        }
+
+        // Check if already fully paid
+        if (inv.status === 'Paid') {
+            return res.status(400).json({ message: "Invoice is already fully paid" });
+        }
+
+        // Check if payment exceeds remaining amount due
+        if (amountPaid > inv.amountDue) {
+            return res.status(400).json({
+                message: `Payment amount exceeds remaining due amount of ₦${inv.amountDue}`
+            });
+        }
+
+        // ================= RECORD PAYMENT =================
         inv.paymentHistory.push({
             amountPaid,
-            paymentMethod,
-            notes
+            paymentMethod: paymentMethod.trim(),
+            notes: notes || ""
         });
 
-        // Update total amount paid
+        // Update payment tracking
         inv.amountPaid += amountPaid;
         inv.amountDue = inv.amount - inv.amountPaid;
 
-        // Auto-update status
+        // Auto-update status based on payment
         if (inv.amountDue <= 0) {
             inv.status = 'Paid';
+        } else if (inv.status === 'Overdue' && inv.amountDue > 0) {
+            // Keep overdue status if still not paid
+            inv.status = 'Overdue';
+        } else {
+            inv.status = 'Pending';
         }
 
         await inv.save();
-        res.json({ message: "Payment recorded", invoice: inv });
+
+        // ================= RESPONSE =================
+        res.status(200).json({
+            message: "Payment recorded successfully",
+            invoice: inv,
+            paymentSummary: {
+                amountPaid: inv.amountPaid,
+                amountDue: inv.amountDue,
+                status: inv.status
+            }
+        });
     } catch (err) {
         res.status(500).json({ message: "Failed to record payment", error: err.message });
     }
@@ -218,11 +444,37 @@ const recordPayment = async (req, res) => {
 // GET payment history
 const getPaymentHistory = async (req, res) => {
     try {
+        // ================= AUTH =================
+        const authHeader = req.headers.authorization;
+
+        if (!authHeader || !authHeader.startsWith("Bearer ")) {
+            return res.status(401).json({ message: "No token provided" });
+        }
+
+        const token = authHeader.split(" ")[1];
+        const decoded = jwt.verify(token, JWT_Secret);
+
+        // ================= GET INVOICE =================
         const inv = await invoice.findById(req.params.id);
         if (!inv) {
             return res.status(404).json({ message: "Invoice not found" });
         }
-        res.json(inv.paymentHistory);
+
+        // Verify ownership
+        if (inv.owner.toString() !== decoded.id) {
+            return res.status(403).json({ message: "Unauthorized - invoice does not belong to you" });
+        }
+
+        // ================= RESPONSE =================
+        res.status(200).json({
+            message: "Payment history retrieved successfully",
+            invoiceId: inv._id,
+            clientName: inv.clientName,
+            totalAmount: inv.amount,
+            amountPaid: inv.amountPaid,
+            amountDue: inv.amountDue,
+            paymentHistory: inv.paymentHistory
+        });
     } catch (err) {
         res.status(500).json({ message: "Failed to fetch payment history", error: err.message });
     }
