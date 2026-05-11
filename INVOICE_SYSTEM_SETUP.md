@@ -27,16 +27,6 @@ Invoice Schema includes:
 - timestamps (createdAt, updatedAt)
 ```
 
-### 2. **Environment Variables** (`.env`)
-
-```env
-PORT=2008
-MONGO_URI=mongodb://...
-Email_passkey=wukf wlew uoaw zecu
-Email_user=adegboyegaphilip6@gmail.com
-JWT_SECRET=f3bbd93072e82be6f25d3ccd97f925a4c015429f2ca545525b9b0cad4aea2bb037a35269d3b282826403dc80326b3107c502a0c6aaf08607b264c0440efb9480
-```
-
 **Note:** No spaces around `=` signs in .env
 
 ### 3. **API Endpoints**
