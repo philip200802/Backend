@@ -3,56 +3,119 @@ const nodemailer = require('nodemailer');
 const PDFDocument = require('pdfkit');
 const fs = require('fs');
 const path = require('path');
+const jwt = require("jsonwebtoken");
+const JWT_Secret = process.env.JWT_SECRET || process.env.jwt_secret;
 
 const createInvoice = async (req, res) => {
     try {
-        const { clientName, amount, status, owner, clientEmail, dueDate, description } = req.body;
-        if (!clientName || amount === undefined || !status || !owner) {
-            return res.status(400).json({ message: "clientName, amount, status, and owner are required" });
+        // ================= AUTH =================
+        const authHeader = req.headers.authorization;
+
+        if (!authHeader || !authHeader.startsWith("Bearer ")) {
+            return res.status(401).json({ message: "No token provided" });
         }
 
-        const newInvoice = await invoice.create({
+        const token = authHeader.split(" ")[1];
+        const decoded = jwt.verify(token, JWT_Secret);
+
+        const owner = decoded.id;
+
+        // ================= DATA =================
+        const {
             clientName,
             amount,
             status,
+            dueDate,
+            description,
+            clientEmail,
+            items
+        } = req.body;
+
+        if (!clientName || amount === undefined) {
+            return res.status(400).json({
+                message: "clientName and amount are required"
+            });
+        }
+
+        // ================= CREATE =================
+        const newInvoice = await invoice.create({
+            clientName,
+            amount,
+            status: status || "Pending",
             owner,
             dueDate,
             description,
-            amountDue: amount
+            amountDue: amount,
+             items: formattedItems 
         });
 
-        res.status(201).json({ message: "Invoice created", invoiceId: newInvoice._id });
+        // ================= RESPONSE FIRST =================
+        res.status(201).json({
+            message: "Invoice created",
+            invoiceId: newInvoice._id
+        });
 
+        // ================= EMAIL (ASYNC) =================
         if (clientEmail) {
             try {
-                let transporter = nodemailer.createTransport({
-                    service: 'gmail',
+                const transporter = nodemailer.createTransport({
+                    service: "gmail",
                     auth: {
                         user: process.env.Email_user,
-                        pass: process.env.Email_passkey
-                    }
+                        pass: process.env.Email_passkey,
+                    },
                 });
-                let mailOptions = {
+
+                await transporter.sendMail({
                     from: process.env.Email_user,
                     to: clientEmail,
-                    html: `<p>Dear ${clientName},</p><p>Your invoice for the amount of $${amount} has been created with status: ${status}.</p><p>Thank you for your business!</p>`
-                };
-                await transporter.sendMail(mailOptions);
-            } catch (mailErr) {
-                console.error("Invoice created, but email notification failed:", mailErr.message);
+                    subject: "Invoice Created - Finvo",
+                    html: `
+                        <div style="font-family:Arial;padding:20px">
+                            <h2>Invoice Created</h2>
+                            <p>Hi ${clientName},</p>
+                            <p>Your invoice of <b>₦${amount}</b> has been created.</p>
+                            <p>Status: ${status || "Pending"}</p>
+                        </div>
+                    `,
+                });
+
+                console.log("Invoice email sent");
+            } catch (emailErr) {
+                console.log("Email error:", emailErr.message);
             }
         }
+
     } catch (err) {
-        res.status(500).json({ message: "Failed to create invoice", error: err.message });
+        return res.status(500).json({
+            message: "Failed to create invoice",
+            error: err.message
+        });
     }
 };
 
+
 const getInvoices = async (req, res) => {
     try {
-        const invoices = await invoice.find().populate('owner', 'firstName lastName email');
+        const authHeader = req.headers.authorization;
+
+        if (!authHeader || !authHeader.startsWith("Bearer ")) {
+            return res.status(401).json({ message: "No token provided" });
+        }
+
+        const token = authHeader.split(" ")[1];
+        const decoded = jwt.verify(token, JWT_Secret);
+
+        const invoices = await invoice
+            .find({ owner: decoded.id })
+            .populate('owner', 'firstName lastName email');
+
         res.json(invoices);
     } catch (err) {
-        res.status(500).json({ message: "Failed to fetch invoices", error: err.message });
+        res.status(500).json({
+            message: "Failed to fetch invoices",
+            error: err.message
+        });
     }
 };
 

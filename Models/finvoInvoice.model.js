@@ -16,6 +16,14 @@ let invoiceSchema = mongoose.Schema({
         enum: ['Pending', 'Paid', 'Overdue'],
         default: 'Pending'
     },
+    items: [
+  {
+    description: { type: String, required: true },
+    qty: { type: Number, required: true },
+    unitPrice: { type: Number, required: true },
+    total: { type: Number }
+  }
+],
     owner: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'user',
