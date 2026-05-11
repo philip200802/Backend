@@ -31,13 +31,26 @@ const createInvoice = async (req, res) => {
             items
         } = req.body;
 
-        if (!clientName || amount === undefined) {
-            return res.status(400).json({
-                message: "clientName and amount are required"
-            });
+        // Validate inputs
+        if (!clientName) {
+            return res.status(400).json({ message: "Client name is required" });
         }
 
-        // ================= CREATE =================
+        if (!amount || amount <= 0) {
+            return res.status(400).json({ message: "Invalid amount" });
+        }
+
+        // Process items
+        const formattedItems = Array.isArray(items)
+            ? items.map(item => ({
+                description: item.description,
+                qty: Number(item.qty),
+                unitPrice: Number(item.unitPrice),
+                total: Number(item.qty) * Number(item.unitPrice)
+            }))
+            : [];
+
+        // Create invoice
         const newInvoice = await invoice.create({
             clientName,
             amount,
@@ -46,7 +59,7 @@ const createInvoice = async (req, res) => {
             dueDate,
             description,
             amountDue: amount,
-             items: formattedItems 
+            items: formattedItems
         });
 
         // ================= RESPONSE FIRST =================
