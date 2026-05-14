@@ -9,7 +9,8 @@
     "mongoose": "^9.4.1",
     "nodemailer": "^8.0.5",
     "nodemon": "^3.1.14",
-    "pdfkit": "^0.18.0"
+    "pdfkit": "^0.18.0",
+    "resend": "^6.12.3"
   },
   "name": "backend",
   "version": "1.0.0",

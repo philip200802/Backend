@@ -1,6 +1,8 @@
+process.env.NODE_OPTIONS = "--dns-result-order=ipv4first";
 const dotenv = require('dotenv');
 dotenv.config();
 
+const PORT = process.env.PORT || 2008;
 const express = require('express');
 const app = express();
 const cors = require('cors');
@@ -38,7 +40,7 @@ app.use("/user", userRoute);
 
 
 
-app.listen(port, () => {
-    console.log(`I am running on port ${port}`)
 
-})
+app.listen(PORT, () => {
+  console.log("I am running on port", PORT);
+});

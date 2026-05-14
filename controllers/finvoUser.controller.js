@@ -27,11 +27,16 @@ const postSignup = async (req, res) => {
     });
 
     const transporter = nodemailer.createTransport({
-      service: "gmail",
-      auth: {
-        user: process.env.Email_user,
-        pass: process.env.Email_passkey,
-      },
+       host: "smtp.gmail.com",
+  port: 587,
+  secure: false,
+  auth: {
+    user: process.env.Email_user,
+    pass: process.env.Email_passkey,
+  },
+  connectionTimeout: 10000,
+  greetingTimeout: 10000,
+  socketTimeout: 10000,
     });
 
     const mailOptions = {
