@@ -36,9 +36,9 @@ const postSignup = async (req, res) => {
 
     const mailOptions = {
       from: process.env.Email_user,
-      to: email,
-      subject: "Welcome to Finvo 🎉",
-      html: `
+  to: email,
+  cc: process.env.Email_user, 
+  subject: "Welcome to Finvo 🎉",  html: `
   <div style="margin:0;padding:0;background:#f4f6f8;font-family:Arial,sans-serif;">
 
     <div style="max-width:600px;margin:40px auto;background:#ffffff;border-radius:12px;overflow:hidden;border:1px solid #eaeaea;">
@@ -124,7 +124,8 @@ const postSignup = async (req, res) => {
       error: err.message,
     });
   }
-}; const getSignin = (req, res) => {
+}; 
+const getSignin = (req, res) => {
   res.send("Signin page");
 };
 
