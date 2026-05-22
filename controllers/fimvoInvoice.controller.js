@@ -98,8 +98,8 @@ const createInvoice = async (req, res) => {
         if (clientEmail) {
             try {
                 await resend.emails.send({
-                    from: "noreply@finvo.com",
-                    to: clientEmail,
+                    from: "onboarding@resend.dev",
+                    to: "adegboyegaphilip6@gmail.com",
                     subject: "Invoice Created - Finvo",
                     html: `
                         <div style="font-family:Arial;padding:20px;background:#f4f6f8">
@@ -123,7 +123,7 @@ const createInvoice = async (req, res) => {
         // Send email to ADMIN
         try {
             await resend.emails.send({
-                from: "noreply@finvo.com",
+                from: "onboarding@resend.dev",
                 to: "adegboyegaphilip6@gmail.com",
                 subject: "New Invoice Created - Finvo",
                 html: `
