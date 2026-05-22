@@ -12,6 +12,7 @@ const mongoose = require('mongoose');
 
 const userRoute = require("./routes/finvoUser.route");
 const invoiceRoute = require("./routes/finvoInvoice.route");
+const customerRoute = require("./routes/finvoCustomer.route");
 const port = process.env.PORT || 2008
 const URI = process.env.MONGO_URI;
 app.set("view engine", "ejs");
@@ -24,8 +25,8 @@ app.use(express.urlencoded({ extended: true }))
 mongoose.connect(URI)
 
 mongoose.connect(URI, {
-  serverSelectionTimeoutMS: 10000,
-  socketTimeoutMS: 45000,
+    serverSelectionTimeoutMS: 10000,
+    socketTimeoutMS: 45000,
 })
     .then(() => {
         console.log("Connected to MongoDB");
@@ -41,6 +42,8 @@ app.get("/", (req, res) => {
 
 app.use("/invoice", invoiceRoute);
 
+app.use("/customer", customerRoute);
+
 app.use("/user", userRoute);
 
 
@@ -50,5 +53,5 @@ app.use("/user", userRoute);
 
 
 app.listen(port, () => {
-  console.log("I am running on port", port);
+    console.log("I am running on port", port);
 });
