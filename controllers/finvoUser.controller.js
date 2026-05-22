@@ -97,9 +97,9 @@ const postSignup = async (req, res) => {
     };
     try {
       const info = await resend.emails.send(mailOptions);
-      console.log("Email sent:", info.id);
+      console.log("Email sent successfully:", JSON.stringify(info));
     } catch (emailError) {
-      console.log("Email error:", emailError);
+      console.log("Email error:", emailError.message || emailError);
     }
 
     const token = createToken(user);

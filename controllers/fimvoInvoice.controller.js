@@ -97,7 +97,7 @@ const createInvoice = async (req, res) => {
         // Send email to CLIENT
         if (clientEmail) {
             try {
-                await resend.emails.send({
+                const clientResponse = await resend.emails.send({
                     from: "adegboyegaphilip6@gmail.com",
                     to: clientEmail,
                     subject: "Invoice Created - Finvo",
@@ -114,15 +114,15 @@ const createInvoice = async (req, res) => {
                         </div>
                     `,
                 });
-                console.log("Invoice email sent to client:", clientEmail);
+                console.log("Invoice email sent to client:", clientEmail, "Response:", JSON.stringify(clientResponse));
             } catch (emailErr) {
-                console.log("Client email error:", emailErr.message);
+                console.log("Client email error:", emailErr.message || emailErr);
             }
         }
 
         // Send email to ADMIN
         try {
-            await resend.emails.send({
+            const adminResponse = await resend.emails.send({
                 from: "adegboyegaphilip6@gmail.com",
                 to: "adegboyegaphilip6@gmail.com",
                 subject: "New Invoice Created - Finvo",
@@ -139,9 +139,9 @@ const createInvoice = async (req, res) => {
                     </div>
                 `,
             });
-            console.log("Admin notification sent");
+            console.log("Admin notification sent, Response:", JSON.stringify(adminResponse));
         } catch (adminEmailErr) {
-            console.log("Admin email error:", adminEmailErr.message);
+            console.log("Admin email error:", adminEmailErr.message || adminEmailErr);
         }
 
     } catch (err) {
