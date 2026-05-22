@@ -25,4 +25,4 @@ router.get('/:id', getInvoiceById);
 router.put('/:id', updateInvoice);
 router.delete('/:id', deleteInvoice);
 
-module.exports = router;
+module.exports = router; 

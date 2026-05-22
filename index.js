@@ -1,15 +1,18 @@
+const dns = require("dns");
+dns.setDefaultResultOrder("ipv4first");
 process.env.NODE_OPTIONS = "--dns-result-order=ipv4first";
+
 const dotenv = require('dotenv');
 dotenv.config();
 
-const PORT = process.env.PORT || 2008;
 const express = require('express');
 const app = express();
 const cors = require('cors');
 const mongoose = require('mongoose');
 
 const userRoute = require("./routes/finvoUser.route");
-const invoiceRoute = require("./routes/finvoInvoice.route");const port = process.env.PORT || 2008
+const invoiceRoute = require("./routes/finvoInvoice.route");
+const port = process.env.PORT || 2008
 const URI = process.env.MONGO_URI;
 app.set("view engine", "ejs");
 app.set("views", __dirname + "/Views");
@@ -19,6 +22,11 @@ app.use(express.urlencoded({ extended: true }))
 
 
 mongoose.connect(URI)
+
+mongoose.connect(URI, {
+  serverSelectionTimeoutMS: 10000,
+  socketTimeoutMS: 45000,
+})
     .then(() => {
         console.log("Connected to MongoDB");
     })
