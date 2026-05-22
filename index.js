@@ -56,7 +56,7 @@ app.post("/test-email", async (req, res) => {
 
         console.log('🧪 [TEST-EMAIL] Starting test...');
         console.log('🧪 [TEST-EMAIL] API Key exists:', !!process.env.RESEND_API_KEY);
-        
+
         const { Resend } = require('resend');
         const resend = new Resend(process.env.RESEND_API_KEY);
 
