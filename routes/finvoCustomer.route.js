@@ -9,10 +9,10 @@ const {
 } = require('../controllers/finvoCustomer.controller');
 
 // Create a new customer
-router.post('/', createCustomer);
+router.post('/create', createCustomer);
 
 // Get all customers for logged-in user
-router.get('/', getCustomers);
+router.get('/all', getCustomers);
 
 // Get single customer by ID
 router.get('/:id', getCustomerById);

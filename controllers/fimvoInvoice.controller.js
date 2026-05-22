@@ -104,6 +104,14 @@ const createInvoice = async (req, res) => {
         setImmediate(async () => {
             try {
                 console.log('[EMAIL] Starting email send to:', clientEmail);
+                console.log('[EMAIL] Items received:', JSON.stringify(formattedItems));
+                console.log('[EMAIL] Calling clientInvoiceEmail with:');
+                console.log('  - clientName:', clientName);
+                console.log('  - invoiceId:', newInvoice._id);
+                console.log('  - description:', description);
+                console.log('  - items count:', formattedItems.length);
+                console.log('  - calculatedAmount:', calculatedAmount);
+                console.log('  - dueDate:', dueDate);
 
                 const emailHTML = clientInvoiceEmail(
                     clientName,
@@ -114,34 +122,33 @@ const createInvoice = async (req, res) => {
                     dueDate
                 );
 
-                console.log('[EMAIL] HTML generated, calling Resend API...');
-
-                const response = await resend.emails.send({
-                    from: "onboarding@resend.dev",
-                    to: clientEmail,
+                console.log('[EMAIL] HTML generated, length:', emailHTML.length);
+                console.log('[EMAIL] HTML preview (first 200 chars):', emailHTML.substring(0, 200));
+                console.log('[EMAIL] Calling Resend API...');
+                to: clientEmail,
                     subject: `Invoice #${newInvoice._id} - Payment Required`,
-                    html: emailHTML
-                });
+                        html: emailHTML
+            });
 
-                console.log('[EMAIL] Resend Response:', JSON.stringify(response));
+        console.log('[EMAIL] Resend Response:', JSON.stringify(response));
 
-                if (response.error) {
-                    console.error(`[EMAIL] Failed to send invoice to ${clientEmail}:`, response.error);
-                } else {
-                    console.log(`[EMAIL] ✅ Invoice #${newInvoice._id} sent successfully to ${clientEmail}`);
-                }
-            } catch (err) {
-                console.error('[EMAIL] Error sending invoice email:', err.message);
-                console.error('[EMAIL] Stack:', err.stack);
-            }
-        });
+        if (response.error) {
+            console.error(`[EMAIL] Failed to send invoice to ${clientEmail}:`, response.error);
+        } else {
+            console.log(`[EMAIL] ✅ Invoice #${newInvoice._id} sent successfully to ${clientEmail}`);
+        }
+    } catch (err) {
+        console.error('[EMAIL] Error sending invoice email:', err.message);
+        console.error('[EMAIL] Stack:', err.stack);
+    }
+});
 
     } catch (err) {
-        return res.status(500).json({
-            message: "Failed to create invoice",
-            error: err.message
-        });
-    }
+    return res.status(500).json({
+        message: "Failed to create invoice",
+        error: err.message
+    });
+}
 };
 
 
