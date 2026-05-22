@@ -5,7 +5,58 @@ const PDFDocument = require('pdfkit');
 const fs = require('fs');
 const path = require('path');
 const jwt = require("jsonwebtoken");
+const { clientEmailTemplate, adminEmailTemplate } = require('../utils/emailTemplates');
+
 const JWT_Secret = process.env.JWT_SECRET || process.env.jwt_secret;
+
+/**
+ * Send invoice emails asynchronously (non-blocking)
+ */
+const sendInvoiceEmails = async (clientName, invoiceId, description, items, calculatedAmount, dueDate, clientEmail) => {
+    try {
+        // Send client email
+        if (clientEmail) {
+            try {
+                const clientHTML = clientEmailTemplate(clientName, invoiceId, description, items, calculatedAmount, dueDate);
+                const clientResponse = await resend.emails.send({
+                    from: "onboarding@resend.dev",
+                    to: clientEmail,
+                    subject: `Invoice #${invoiceId} Created - Finvo`,
+                    html: clientHTML
+                });
+
+                if (clientResponse.error) {
+                    console.error(`[EMAIL] Client email failed for ${clientEmail}:`, clientResponse.error);
+                } else {
+                    console.log(`[EMAIL] Client email sent successfully to ${clientEmail}`);
+                }
+            } catch (clientEmailErr) {
+                console.error(`[EMAIL] Client email error:`, clientEmailErr.message);
+            }
+        }
+
+        // Send admin email
+        try {
+            const adminHTML = adminEmailTemplate(clientName, invoiceId, calculatedAmount, items.length, dueDate);
+            const adminResponse = await resend.emails.send({
+                from: "onboarding@resend.dev",
+                to: "adegboyegaphilip6@gmail.com",
+                subject: `[ADMIN] New Invoice Created - #${invoiceId}`,
+                html: adminHTML
+            });
+
+            if (adminResponse.error) {
+                console.error(`[EMAIL] Admin email failed:`, adminResponse.error);
+            } else {
+                console.log(`[EMAIL] Admin email sent successfully`);
+            }
+        } catch (adminEmailErr) {
+            console.error(`[EMAIL] Admin email error:`, adminEmailErr.message);
+        }
+    } catch (err) {
+        console.error(`[EMAIL] Unexpected error in email sending:`, err);
+    }
+};
 
 const createInvoice = async (req, res) => {
     try {
@@ -86,84 +137,26 @@ const createInvoice = async (req, res) => {
             items: formattedItems
         });
 
-        // ================= RESPONSE FIRST =================
+        // ================= RESPONSE FIRST (NON-BLOCKING) =================
         res.status(201).json({
             message: "Invoice created successfully",
             invoiceId: newInvoice._id,
             amount: calculatedAmount
         });
 
-        // ================= EMAIL (ASYNC) =================
-        // Send email to CLIENT
-       try {
-    const adminResponse = await resend.emails.send({
-        from: "onboarding@resend.dev",
-        to: "adegboyegaphilip6@gmail.com",
-        subject: "New Invoice Created - Finvo",
-        html: `
-        <table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f6f8;padding:20px;font-family:Arial,sans-serif;">
-          <tr>
-            <td align="center">
-
-              <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:10px;overflow:hidden;">
-
-                <!-- HEADER -->
-                <tr>
-                  <td style="background:#1e88e5;color:#ffffff;text-align:center;padding:20px;">
-                    <h2 style="margin:0;">New Invoice Created</h2>
-                  </td>
-                </tr>
-
-                <!-- BODY -->
-                <tr>
-                  <td style="padding:25px;color:#333;font-size:14px;line-height:1.6;">
-
-                    <p><strong>Client:</strong> ${clientName}</p>
-                    <p><strong>Amount:</strong> ₦${calculatedAmount}</p>
-                    <p><strong>Items:</strong> ${formattedItems.length}</p>
-                    <p><strong>Due Date:</strong> ${dueDate ? new Date(dueDate).toLocaleDateString() : 'Not specified'}</p>
-                    <p><strong>Invoice ID:</strong> ${newInvoice._id}</p>
-
-                    <!-- BUTTON -->
-                    <table cellpadding="0" cellspacing="0" style="margin-top:20px;">
-                      <tr>
-                        <td style="background:#1e88e5;padding:12px 20px;border-radius:6px;">
-                          <a href="https://yourfrontendlink.com/invoice/${newInvoice._id}"
-                             style="color:#ffffff;text-decoration:none;font-weight:bold;">
-                            View Invoice
-                          </a>
-                        </td>
-                      </tr>
-                    </table>
-
-                  </td>
-                </tr>
-
-                <!-- FOOTER -->
-                <tr>
-                  <td style="background:#f1f1f1;text-align:center;padding:15px;font-size:12px;color:#777;">
-                    © 2026 Finvo • All rights reserved
-                  </td>
-                </tr>
-
-              </table>
-
-            </td>
-          </tr>
-        </table>
-        `,
-    });
-
-    // ✅ Proper response handling
-    if (adminResponse.error) {
-        console.log("❌ Admin email failed:", adminResponse.error);
-    } else {
-        console.log("✅ Admin email sent:", adminResponse.data);
-    }
-
-} catch (adminEmailErr) {
-    console.log("❌ Admin email exception:", adminEmailErr);
-}
+        // ================= EMAIL (ASYNC - NON-BLOCKING) =================
+        // Send emails asynchronously without waiting
+        setImmediate(() => {
+            sendInvoiceEmails(
+                clientName,
+                newInvoice._id,
+                description,
+                formattedItems,
+                calculatedAmount,
+                dueDate,
+                clientEmail
+            );
+        });
 
     } catch (err) {
         return res.status(500).json({
