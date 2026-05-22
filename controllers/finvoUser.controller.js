@@ -29,7 +29,7 @@ const postSignup = async (req, res) => {
 
     const mailOptions = {
       from: "onboarding@resend.dev",
-      to: "adegboyegaphilip6@gmail.com",
+      to: email,
       subject: "Welcome to Finvo 🎉", html: `
   <div style="margin:0;padding:0;background:#f4f6f8;font-family:Arial,sans-serif;">
 

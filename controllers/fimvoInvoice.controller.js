@@ -5,58 +5,7 @@ const PDFDocument = require('pdfkit');
 const fs = require('fs');
 const path = require('path');
 const jwt = require("jsonwebtoken");
-const { clientEmailTemplate, adminEmailTemplate } = require('../utils/emailTemplates');
-
 const JWT_Secret = process.env.JWT_SECRET || process.env.jwt_secret;
-
-/**
- * Send invoice emails asynchronously (non-blocking)
- */
-const sendInvoiceEmails = async (clientName, invoiceId, description, items, calculatedAmount, dueDate, clientEmail) => {
-    try {
-        // Send client email
-        if (clientEmail) {
-            try {
-                const clientHTML = clientEmailTemplate(clientName, invoiceId, description, items, calculatedAmount, dueDate);
-                const clientResponse = await resend.emails.send({
-                    from: "onboarding@resend.dev",
-                    to: clientEmail,
-                    subject: `Invoice #${invoiceId} Created - Finvo`,
-                    html: clientHTML
-                });
-
-                if (clientResponse.error) {
-                    console.error(`[EMAIL] Client email failed for ${clientEmail}:`, clientResponse.error);
-                } else {
-                    console.log(`[EMAIL] Client email sent successfully to ${clientEmail}`);
-                }
-            } catch (clientEmailErr) {
-                console.error(`[EMAIL] Client email error:`, clientEmailErr.message);
-            }
-        }
-
-        // Send admin email
-        try {
-            const adminHTML = adminEmailTemplate(clientName, invoiceId, calculatedAmount, items.length, dueDate);
-            const adminResponse = await resend.emails.send({
-                from: "onboarding@resend.dev",
-                to: "adegboyegaphilip6@gmail.com",
-                subject: `[ADMIN] New Invoice Created - #${invoiceId}`,
-                html: adminHTML
-            });
-
-            if (adminResponse.error) {
-                console.error(`[EMAIL] Admin email failed:`, adminResponse.error);
-            } else {
-                console.log(`[EMAIL] Admin email sent successfully`);
-            }
-        } catch (adminEmailErr) {
-            console.error(`[EMAIL] Admin email error:`, adminEmailErr.message);
-        }
-    } catch (err) {
-        console.error(`[EMAIL] Unexpected error in email sending:`, err);
-    }
-};
 
 const createInvoice = async (req, res) => {
     try {
@@ -137,26 +86,63 @@ const createInvoice = async (req, res) => {
             items: formattedItems
         });
 
-        // ================= RESPONSE FIRST (NON-BLOCKING) =================
+        // ================= RESPONSE FIRST =================
         res.status(201).json({
             message: "Invoice created successfully",
             invoiceId: newInvoice._id,
             amount: calculatedAmount
         });
 
-        // ================= EMAIL (ASYNC - NON-BLOCKING) =================
-        // Send emails asynchronously without waiting
-        setImmediate(() => {
-            sendInvoiceEmails(
-                clientName,
-                newInvoice._id,
-                description,
-                formattedItems,
-                calculatedAmount,
-                dueDate,
-                clientEmail
-            );
-        });
+        // ================= EMAIL (ASYNC) =================
+        // Send email to CLIENT
+        if (clientEmail) {
+            try {
+                const clientResponse = await resend.emails.send({
+                    from: "onboarding@resend.dev",
+                    to: clientEmail,
+                    subject: "Invoice Created - Finvo",
+                    html: `
+                        <div style="font-family:Arial;padding:20px;background:#f4f6f8">
+                            <div style="max-width:600px;margin:20px auto;background:#fff;padding:20px;border-radius:8px">
+                                <h2>Invoice Created</h2>
+                                <p>Hi ${clientName},</p>
+                                <p>Your invoice of <b>₦${calculatedAmount}</b> has been created.</p>
+                                <p>Due Date: ${dueDate ? new Date(dueDate).toLocaleDateString() : 'Not specified'}</p>
+                                <p>Status: Pending</p>
+                                <p>Please make payment at your earliest convenience.</p>
+                            </div>
+                        </div>
+                    `,
+                });
+                console.log("Invoice email sent to client:", clientEmail, "Response:", JSON.stringify(clientResponse));
+            } catch (emailErr) {
+                console.log("Client email error:", emailErr.message || emailErr);
+            }
+        }
+
+        // Send email to ADMIN
+        try {
+            const adminResponse = await resend.emails.send({
+                from: "onboarding@resend.dev",
+                to: "adegboyegaphilip6@gmail.com",
+                subject: "New Invoice Created - Finvo",
+                html: `
+                    <div style="font-family:Arial;padding:20px;background:#f4f6f8">
+                        <div style="max-width:600px;margin:20px auto;background:#fff;padding:20px;border-radius:8px">
+                            <h2>New Invoice Created</h2>
+                            <p>Client: ${clientName}</p>
+                            <p>Amount: ₦${calculatedAmount}</p>
+                            <p>Items: ${formattedItems.length}</p>
+                            <p>Due Date: ${dueDate ? new Date(dueDate).toLocaleDateString() : 'Not specified'}</p>
+                            <p>Invoice ID: ${newInvoice._id}</p>
+                        </div>
+                    </div>
+                `,
+            });
+            console.log("Admin notification sent, Response:", JSON.stringify(adminResponse));
+        } catch (adminEmailErr) {
+            console.log("Admin email error:", adminEmailErr.message || adminEmailErr);
+        }
 
     } catch (err) {
         return res.status(500).json({
