@@ -95,106 +95,75 @@ const createInvoice = async (req, res) => {
 
         // ================= EMAIL (ASYNC) =================
         // Send email to CLIENT
-        if (clientEmail) {
-            try {
-                const clientResponse = await resend.emails.send({
-                    from: "onboarding@resend.dev",
-                    to: clientEmail,
-                    subject: "Invoice Created - Finvo",
-                    html: `
-                       <div style="font-family:Arial,sans-serif;background:#f4f6f8;padding:30px;">
+       try {
+    const adminResponse = await resend.emails.send({
+        from: "onboarding@resend.dev",
+        to: "adegboyegaphilip6@gmail.com",
+        subject: "New Invoice Created - Finvo",
+        html: `
+        <table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f6f8;padding:20px;font-family:Arial,sans-serif;">
+          <tr>
+            <td align="center">
 
-  <div style="max-width:600px;margin:auto;background:#ffffff;border-radius:10px;overflow:hidden;border:1px solid #eaeaea;">
+              <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:10px;overflow:hidden;">
 
-    <!-- HEADER -->
-    <div style="background:#1e88e5;color:#ffffff;padding:25px;text-align:center;">
-      <h1 style="margin:0;font-size:22px;">Finvo Invoice</h1>
-      <p style="margin:5px 0 0;font-size:13px;opacity:0.9;">Smart Invoice Management</p>
-    </div>
+                <!-- HEADER -->
+                <tr>
+                  <td style="background:#1e88e5;color:#ffffff;text-align:center;padding:20px;">
+                    <h2 style="margin:0;">New Invoice Created</h2>
+                  </td>
+                </tr>
 
-    <!-- BODY -->
-    <div style="padding:30px;color:#333;line-height:1.6;">
+                <!-- BODY -->
+                <tr>
+                  <td style="padding:25px;color:#333;font-size:14px;line-height:1.6;">
 
-      <p style="font-size:16px;">Hi <strong>${clientName}</strong>,</p>
+                    <p><strong>Client:</strong> ${clientName}</p>
+                    <p><strong>Amount:</strong> ₦${calculatedAmount}</p>
+                    <p><strong>Items:</strong> ${formattedItems.length}</p>
+                    <p><strong>Due Date:</strong> ${dueDate ? new Date(dueDate).toLocaleDateString() : 'Not specified'}</p>
+                    <p><strong>Invoice ID:</strong> ${newInvoice._id}</p>
 
-      <p>
-        Your invoice has been successfully created and is now ready for payment.
-      </p>
+                    <!-- BUTTON -->
+                    <table cellpadding="0" cellspacing="0" style="margin-top:20px;">
+                      <tr>
+                        <td style="background:#1e88e5;padding:12px 20px;border-radius:6px;">
+                          <a href="https://yourfrontendlink.com/invoice/${newInvoice._id}"
+                             style="color:#ffffff;text-decoration:none;font-weight:bold;">
+                            View Invoice
+                          </a>
+                        </td>
+                      </tr>
+                    </table>
 
-      <!-- AMOUNT BOX -->
-      <div style="background:#e3f2fd;border-left:5px solid #1e88e5;padding:15px;margin:20px 0;border-radius:6px;">
-        <p style="margin:0;font-size:14px;color:#555;">Invoice Amount</p>
-        <h2 style="margin:5px 0;color:#1e88e5;">₦${calculatedAmount}</h2>
-      </div>
+                  </td>
+                </tr>
 
-      <!-- DETAILS -->
-      <div style="background:#fafafa;padding:15px;border-radius:8px;margin-bottom:20px;">
-        <p style="margin:5px 0;"><strong>Due Date:</strong> ${dueDate ? new Date(dueDate).toLocaleDateString() : 'Not specified'}</p>
-        <p style="margin:5px 0;"><strong>Status:</strong> <span style="color:#ff9800;font-weight:bold;">Pending</span></p>
-      </div>
+                <!-- FOOTER -->
+                <tr>
+                  <td style="background:#f1f1f1;text-align:center;padding:15px;font-size:12px;color:#777;">
+                    © 2026 Finvo • All rights reserved
+                  </td>
+                </tr>
 
-      <p>
-        Please make payment at your earliest convenience to avoid delays in service.
-      </p>
+              </table>
 
-      <!-- CTA BUTTON -->
-      <div style="text-align:center;margin:30px 0;">
-        <a href="https://yourfrontendlink.com/pay"
-           style="background:#1e88e5;color:#fff;padding:12px 25px;
-           text-decoration:none;border-radius:6px;font-weight:bold;display:inline-block;">
-          Pay Invoice Now
-        </a>
-      </div>
+            </td>
+          </tr>
+        </table>
+        `,
+    });
 
-      <p style="font-size:13px;color:#777;">
-        If you have any questions, feel free to contact support.
-      </p>
+    // ✅ Proper response handling
+    if (adminResponse.error) {
+        console.log("❌ Admin email failed:", adminResponse.error);
+    } else {
+        console.log("✅ Admin email sent:", adminResponse.data);
+    }
 
-      <p style="margin-top:25px;">
-        Regards,<br/>
-        <strong>The Finvo Team</strong>
-      </p>
-
-    </div>
-
-    <!-- FOOTER -->
-    <div style="background:#f5f5f5;text-align:center;padding:15px;font-size:12px;color:#888;">
-      © 2026 Finvo • All rights reserved
-    </div>
-
-  </div>
-
-</div> `,
-                });
-                console.log("Invoice email sent to client:", clientEmail, "Response:", JSON.stringify(clientResponse));
-            } catch (emailErr) {
-                console.log("Client email error:", emailErr.message || emailErr);
-            }
-        }
-
-        // Send email to ADMIN
-        try {
-            const adminResponse = await resend.emails.send({
-                from: "onboarding@resend.dev",
-                to: "adegboyegaphilip6@gmail.com",
-                subject: "New Invoice Created - Finvo",
-                html: `
-                    <div style="font-family:Arial;padding:20px;background:#f4f6f8">
-                        <div style="max-width:600px;margin:20px auto;background:#fff;padding:20px;border-radius:8px">
-                            <h2>New Invoice Created</h2>
-                            <p>Client: ${clientName}</p>
-                            <p>Amount: ₦${calculatedAmount}</p>
-                            <p>Items: ${formattedItems.length}</p>
-                            <p>Due Date: ${dueDate ? new Date(dueDate).toLocaleDateString() : 'Not specified'}</p>
-                            <p>Invoice ID: ${newInvoice._id}</p>
-                        </div>
-                    </div>
-                `,
-            });
-            console.log("Admin notification sent, Response:", JSON.stringify(adminResponse));
-        } catch (adminEmailErr) {
-            console.log("Admin email error:", adminEmailErr.message || adminEmailErr);
-        }
+} catch (adminEmailErr) {
+    console.log("❌ Admin email exception:", adminEmailErr);
+}
 
     } catch (err) {
         return res.status(500).json({
