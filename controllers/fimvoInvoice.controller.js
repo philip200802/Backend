@@ -1,5 +1,6 @@
 const invoice = require('../Models/finvoInvoice.model');
-const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
+const resend = new Resend(process.env.RESEND_API_KEY);
 const PDFDocument = require('pdfkit');
 const fs = require('fs');
 const path = require('path');
@@ -93,19 +94,11 @@ const createInvoice = async (req, res) => {
         });
 
         // ================= EMAIL (ASYNC) =================
-        const transporter = nodemailer.createTransport({
-            service: "gmail",
-            auth: {
-                user: process.env.Email_user,
-                pass: process.env.Email_passkey,
-            },
-        });
-
         // Send email to CLIENT
         if (clientEmail) {
             try {
-                await transporter.sendMail({
-                    from: process.env.Email_user,
+                await resend.emails.send({
+                    from: "adegboyegaphilip6@gmail.com",
                     to: clientEmail,
                     subject: "Invoice Created - Finvo",
                     html: `
@@ -129,9 +122,9 @@ const createInvoice = async (req, res) => {
 
         // Send email to ADMIN
         try {
-            await transporter.sendMail({
-                from: process.env.Email_user,
-                to: process.env.Email_user,
+            await resend.emails.send({
+                from: "adegboyegaphilip6@gmail.com",
+                to: "adegboyegaphilip6@gmail.com",
                 subject: "New Invoice Created - Finvo",
                 html: `
                     <div style="font-family:Arial;padding:20px;background:#f4f6f8">

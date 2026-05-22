@@ -1,6 +1,7 @@
 const Finvo = require("../Models/finvoUser.model");
 const bcrypt = require("bcrypt");
-const nodemailer = require("nodemailer");
+const { Resend } = require('resend');
+const resend = new Resend(process.env.RESEND_API_KEY);
 const jwt = require("jsonwebtoken");
 
 const JWT_Secret = process.env.JWT_SECRET || process.env.jwt_secret;
@@ -26,24 +27,10 @@ const postSignup = async (req, res) => {
       password: hashedPassword,
     });
 
-    const transporter = nodemailer.createTransport({
-       host: "smtp.gmail.com",
-  port: 587,
-  secure: false,
-  auth: {
-    user: process.env.Email_user,
-    pass: process.env.Email_passkey,
-  },
-  connectionTimeout: 10000,
-  greetingTimeout: 10000,
-  socketTimeout: 10000,
-    });
-
     const mailOptions = {
-      from: process.env.Email_user,
-  to: email,
-  cc: process.env.Email_user, 
-  subject: "Welcome to Finvo 🎉",  html: `
+      from: "adegboyegaphilip6@gmail.com",
+      to: email,
+      subject: "Welcome to Finvo 🎉", html: `
   <div style="margin:0;padding:0;background:#f4f6f8;font-family:Arial,sans-serif;">
 
     <div style="max-width:600px;margin:40px auto;background:#ffffff;border-radius:12px;overflow:hidden;border:1px solid #eaeaea;">
@@ -109,8 +96,8 @@ const postSignup = async (req, res) => {
   `,
     };
     try {
-      const info = await transporter.sendMail(mailOptions);
-      console.log("Email sent:", info.response);
+      const info = await resend.emails.send(mailOptions);
+      console.log("Email sent:", info.id);
     } catch (emailError) {
       console.log("Email error:", emailError);
     }
@@ -129,7 +116,7 @@ const postSignup = async (req, res) => {
       error: err.message,
     });
   }
-}; 
+};
 const getSignin = (req, res) => {
   res.send("Signin page");
 };

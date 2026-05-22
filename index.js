@@ -49,6 +49,6 @@ app.use("/user", userRoute);
 
 
 
-app.listen(PORT, () => {
-  console.log("I am running on port", PORT);
+app.listen(port, () => {
+  console.log("I am running on port", port);
 });
