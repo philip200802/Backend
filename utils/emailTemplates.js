@@ -1,19 +1,27 @@
-const BRAND_COLOR = '#1e88e5';
+const BRAND_COLOR = '#5e4a7a';
+const BRAND_ACCENT = '#b8956a';
 const BRAND_NAME = 'Finvo';
 
 /**
  * Generate professional invoice email HTML for client
- * Shows complete itemization with qty, unit price, and totals
+ * Matches premium invoice template design with modern styling
  */
 const clientInvoiceEmail = (clientName, invoiceId, description, items, calculatedAmount, dueDate) => {
+    const invoiceDate = new Date().toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' });
+    const dueDateFormatted = dueDate ? new Date(dueDate).toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' }) : 'Not specified';
+
+    // Calculate tax (assuming 10% tax rate, adjust as needed)
+    const taxRate = 0.1;
+    const subtotal = calculatedAmount / (1 + taxRate);
+    const tax = calculatedAmount - subtotal;
+
     // Format items into table rows
-    const itemsHTML = items.map((item, index) => `
-        <tr style="border-bottom: 1px solid #eee;">
-            <td style="padding: 12px; text-align: center; color: #666; font-size: 14px;">${index + 1}</td>
-            <td style="padding: 12px; color: #333; font-size: 14px;">${item.description}</td>
-            <td style="padding: 12px; text-align: center; color: #666; font-size: 14px;">${item.qty}</td>
-            <td style="padding: 12px; text-align: right; color: #666; font-size: 14px;">₦${item.unitPrice.toLocaleString()}</td>
-            <td style="padding: 12px; text-align: right; color: #333; font-weight: bold; font-size: 14px;">₦${item.total.toLocaleString()}</td>
+    const itemsHTML = items.map((item) => `
+        <tr style="border-bottom: 1px solid #e8e8e8;">
+            <td style="padding: 12px 15px; color: #666; font-size: 13px;">${item.description}</td>
+            <td style="padding: 12px 15px; text-align: center; color: #666; font-size: 13px;">${item.qty}</td>
+            <td style="padding: 12px 15px; text-align: right; color: #666; font-size: 13px;">₦${item.unitPrice.toLocaleString()}</td>
+            <td style="padding: 12px 15px; text-align: right; color: #333; font-weight: 600; font-size: 13px;">₦${item.total.toLocaleString()}</td>
         </tr>
     `).join('');
 
@@ -23,104 +31,108 @@ const clientInvoiceEmail = (clientName, invoiceId, description, items, calculate
         <head>
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Invoice #${invoiceId}</title>
         </head>
-        <body style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; background-color: #f5f5f5;">
-            <div style="max-width: 600px; margin: 0 auto; background-color: #fff; padding: 0; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); overflow: hidden;">
+        <body style="margin: 0; padding: 20px; background-color: #f5f5f5; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
+            <div style="max-width: 900px; margin: 0 auto; background-color: #ffffff; box-shadow: 0 4px 12px rgba(0,0,0,0.08);">
                 
-                <!-- HEADER -->
-                <div style="background: linear-gradient(135deg, ${BRAND_COLOR} 0%, #1565c0 100%); padding: 30px; text-align: center; color: white;">
-                    <h1 style="margin: 0; font-size: 28px; font-weight: bold;">📄 INVOICE</h1>
-                    <p style="margin: 8px 0 0 0; font-size: 14px; opacity: 0.9;">Payment Required</p>
-                </div>
-
-                <!-- CONTENT -->
-                <div style="padding: 30px;">
+                <!-- MAIN LAYOUT: Two-column with sidebar -->
+                <div style="display: table; width: 100%; border-collapse: collapse;">
                     
-                    <!-- Greeting -->
-                    <p style="margin: 0 0 20px 0; font-size: 16px; color: #333;">
-                        Hi <strong>${clientName}</strong>,
-                    </p>
+                    <!-- LEFT SIDEBAR -->
+                    <div style="display: table-cell; width: 35%; background: linear-gradient(135deg, ${BRAND_COLOR} 0%, #6b5a8a 100%); padding: 40px 30px; color: white; vertical-align: top;">
+                        <div style="writing-mode: vertical-rl; transform: rotate(180deg); font-size: 24px; font-weight: bold; letter-spacing: 3px; margin-bottom: 40px; opacity: 0.3;">
+                            INVOICE TEMPLATE
+                        </div>
+                        
+                        <!-- Company Info -->
+                        <div style="margin-top: 60px;">
+                            <h2 style="margin: 0 0 20px 0; font-size: 28px; font-weight: bold; color: white;">
+                                ${BRAND_NAME}
+                            </h2>
+                            <p style="margin: 0 0 15px 0; font-size: 13px; line-height: 1.8; opacity: 0.9;">
+                                Professional Invoice Management<br/>
+                                Simplifying Your Billing Process
+                            </p>
+                        </div>
 
-                    <!-- Invoice ID & Status -->
-                    <div style="background-color: #f9f9f9; padding: 15px; border-radius: 6px; margin-bottom: 25px; border-left: 4px solid ${BRAND_COLOR};">
-                        <table style="width: 100%; border-collapse: collapse;">
-                            <tr>
-                                <td style="padding: 8px 0; font-size: 13px; color: #666;">
-                                    <strong>Invoice ID:</strong> #${invoiceId}
-                                </td>
-                                <td style="padding: 8px 0; text-align: right; font-size: 13px; color: #666;">
-                                    <strong>Date:</strong> ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
-                                </td>
-                            </tr>
-                            <tr>
-                                <td style="padding: 8px 0; font-size: 13px; color: #666;">
-                                    <strong>Status:</strong> <span style="color: #ff9800; font-weight: bold;">PENDING</span>
-                                </td>
-                                <td style="padding: 8px 0; text-align: right; font-size: 13px; color: #666;">
-                                    <strong>Due Date:</strong> ${dueDate ? new Date(dueDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : 'Not specified'}
-                                </td>
-                            </tr>
+                        <!-- Contact Info -->
+                        <div style="margin-top: 40px; font-size: 12px; opacity: 0.85; line-height: 1.8;">
+                            <p style="margin: 0;">📧 contact@finvo.com</p>
+                            <p style="margin: 5px 0 0 0;">🌐 www.finvo.com</p>
+                        </div>
+                    </div>
+
+                    <!-- RIGHT CONTENT -->
+                    <div style="display: table-cell; width: 65%; padding: 40px 35px; vertical-align: top;">
+                        
+                        <!-- HEADER ROW -->
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 30px;">
+                            <div>
+                                <h1 style="margin: 0; font-size: 32px; font-weight: bold; color: #333;">INVOICE</h1>
+                                <p style="margin: 5px 0 0 0; font-size: 13px; color: #999;">#${invoiceId}</p>
+                            </div>
+                            <div style="text-align: right;">
+                                <p style="margin: 0; font-size: 13px; color: #666;"><strong>Date:</strong> ${invoiceDate}</p>
+                                <p style="margin: 5px 0 0 0; font-size: 13px; color: #666;"><strong>Due:</strong> ${dueDateFormatted}</p>
+                            </div>
+                        </div>
+
+                        <!-- INVOICE DETAILS -->
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 35px; padding-bottom: 25px; border-bottom: 2px solid #f0f0f0;">
+                            <div>
+                                <p style="margin: 0 0 15px 0; font-size: 12px; color: #999; text-transform: uppercase; letter-spacing: 1px; font-weight: 600;">INVOICE TO</p>
+                                <h3 style="margin: 0 0 8px 0; font-size: 16px; color: #333; font-weight: 600;">${clientName}</h3>
+                                <p style="margin: 0; font-size: 13px; color: #666; line-height: 1.6;">
+                                    ${description ? description + '<br/>' : ''}
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- ITEMS TABLE -->
+                        <table style="width: 100%; border-collapse: collapse; margin-bottom: 25px;">
+                            <thead>
+                                <tr style="background-color: ${BRAND_ACCENT}; color: white;">
+                                    <th style="padding: 12px 15px; text-align: left; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Description</th>
+                                    <th style="padding: 12px 15px; text-align: center; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Qty</th>
+                                    <th style="padding: 12px 15px; text-align: right; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Price</th>
+                                    <th style="padding: 12px 15px; text-align: right; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${itemsHTML}
+                            </tbody>
                         </table>
-                    </div>
 
-                    <!-- Description (if provided) -->
-                    ${description ? `
-                    <div style="background-color: #e3f2fd; padding: 15px; border-radius: 6px; margin-bottom: 25px; border-left: 4px solid #2196f3;">
-                        <p style="margin: 0; font-size: 14px; color: #1976d2;">
-                            <strong>📝 Description:</strong> ${description}
-                        </p>
-                    </div>
-                    ` : ''}
-
-                    <!-- ITEMS LIST -->
-                    <div style="margin-bottom: 25px;">
-                        <h3 style="margin: 0 0 15px 0; font-size: 16px; color: #333; border-bottom: 2px solid ${BRAND_COLOR}; padding-bottom: 10px;">
-                            📦 Items Purchased
-                        </h3>
-                        ${items.map((item, index) => `
-                            <div style="padding: 15px; margin-bottom: 12px; background-color: #fafafa; border-left: 4px solid ${BRAND_COLOR}; border-radius: 4px;">
-                                <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-                                    <h4 style="margin: 0; font-size: 15px; color: #333; font-weight: bold;">
-                                        ${index + 1}. ${item.description}
-                                    </h4>
+                        <!-- TOTALS SECTION -->
+                        <div style="display: flex; justify-content: flex-end; margin-top: 30px;">
+                            <div style="width: 250px;">
+                                <div style="display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #e8e8e8; font-size: 13px; color: #666;">
+                                    <span><strong>Sub-total:</strong></span>
+                                    <span>₦${subtotal.toLocaleString('en-US', { maximumFractionDigits: 2 })}</span>
                                 </div>
-                                <div style="display: flex; justify-content: space-between; font-size: 13px; color: #666; margin-bottom: 6px;">
-                                    <span><strong>Quantity:</strong> ${item.qty}</span>
-                                    <span><strong>Unit Price:</strong> ₦${item.unitPrice.toLocaleString()}</span>
+                                <div style="display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #e8e8e8; font-size: 13px; color: #666;">
+                                    <span><strong>Tax:</strong></span>
+                                    <span>₦${tax.toLocaleString('en-US', { maximumFractionDigits: 2 })}</span>
                                 </div>
-                                <div style="text-align: right; padding-top: 8px; border-top: 1px solid #ddd; font-size: 14px;">
-                                    <strong style="color: ${BRAND_COLOR}; font-size: 16px;">Total: ₦${item.total.toLocaleString()}</strong>
+                                <div style="display: flex; justify-content: space-between; padding: 15px 0; background-color: ${BRAND_ACCENT}; padding: 15px 12px; border-radius: 4px; font-size: 16px; font-weight: bold; color: white; margin-top: 10px;">
+                                    <span>Total:</span>
+                                    <span>₦${calculatedAmount.toLocaleString()}</span>
                                 </div>
                             </div>
-                        `).join('')}
-                    </div>
+                        </div>
 
-                    <!-- TOTAL AMOUNT -->
-                    <div style="background-color: ${BRAND_COLOR}; padding: 20px; border-radius: 6px; text-align: right; margin-bottom: 25px;">
-                        <p style="margin: 0; font-size: 14px; color: white; opacity: 0.9;">Total Amount Due</p>
-                        <h2 style="margin: 8px 0 0 0; font-size: 32px; color: white; font-weight: bold;">
-                            ₦${calculatedAmount.toLocaleString()}
-                        </h2>
-                    </div>
+                        <!-- PAYMENT NOTE -->
+                        <div style="margin-top: 30px; padding: 15px; background-color: #fafafa; border-left: 4px solid ${BRAND_COLOR}; border-radius: 3px;">
+                            <p style="margin: 0; font-size: 12px; color: #666; line-height: 1.6;">
+                                <strong>Payment Terms:</strong> Please arrange payment by the due date. If you have any questions about this invoice, please don't hesitate to contact us.
+                            </p>
+                        </div>
 
-                    <!-- CALL TO ACTION -->
-                    <div style="background-color: #f0f7ff; padding: 20px; border-radius: 6px; text-align: center; margin-bottom: 25px; border: 1px solid #b3e5fc;">
-                        <p style="margin: 0 0 12px 0; font-size: 14px; color: #333; font-weight: bold;">
-                            Please make payment as soon as possible
-                        </p>
-                        <p style="margin: 0; font-size: 13px; color: #666;">
-                            If you have any questions or need an invoice adjustment, please contact us.
-                        </p>
-                    </div>
-
-                    <!-- FOOTER -->
-                    <div style="border-top: 1px solid #eee; padding-top: 15px; text-align: center;">
-                        <p style="margin: 0 0 8px 0; font-size: 12px; color: #999;">
-                            Thank you for your business!
-                        </p>
-                        <p style="margin: 0; font-size: 11px; color: #bbb;">
-                            &copy; 2026 ${BRAND_NAME}. All rights reserved.
-                        </p>
+                        <!-- FOOTER -->
+                        <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #e8e8e8; text-align: center; font-size: 11px; color: #999;">
+                            <p style="margin: 0;">Thank you for your business! | © 2026 ${BRAND_NAME} • All rights reserved</p>
+                        </div>
                     </div>
                 </div>
             </div>
