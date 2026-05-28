@@ -141,6 +141,12 @@ const updateCustomer = async (req, res) => {
 
         const token = authHeader.split(" ")[1];
         const decoded = jwt.verify(token, JWT_Secret);
+        const customerId = req.params.id;
+
+        // ================= DEBUG: Log incoming data =================
+        console.log('[UPDATE_CUSTOMER] Attempting to update customer:', customerId);
+        console.log('[UPDATE_CUSTOMER] Received body:', JSON.stringify(req.body));
+        console.log('[UPDATE_CUSTOMER] User ID:', decoded.id);
 
         // ================= VALIDATION =================
         const { name, email, phone, company, address, notes } = req.body;
@@ -154,13 +160,15 @@ const updateCustomer = async (req, res) => {
         }
 
         // ================= GET EXISTING CUSTOMER =================
-        const existingCustomer = await Customer.findById(req.params.id);
+        const existingCustomer = await Customer.findById(customerId);
         if (!existingCustomer) {
+            console.log('[UPDATE_CUSTOMER] ERROR: Customer not found with ID:', customerId);
             return res.status(404).json({ message: "Customer not found" });
         }
 
         // Verify ownership
         if (existingCustomer.owner.toString() !== decoded.id) {
+            console.log('[UPDATE_CUSTOMER] ERROR: Ownership check failed. Owner:', existingCustomer.owner, 'User:', decoded.id);
             return res.status(403).json({ message: "Unauthorized - customer does not belong to you" });
         }
 
@@ -169,7 +177,7 @@ const updateCustomer = async (req, res) => {
             const duplicateEmail = await Customer.findOne({
                 owner: decoded.id,
                 email: email.toLowerCase(),
-                _id: { $ne: req.params.id }
+                _id: { $ne: customerId }
             });
             if (duplicateEmail) {
                 return res.status(400).json({ message: "Customer with this email already exists" });
@@ -184,20 +192,31 @@ const updateCustomer = async (req, res) => {
         if (company) updateData.company = company.trim();
         if (address) updateData.address = address;
         if (notes) updateData.notes = notes;
-        updateData.updatedAt = Date.now();
+
+        console.log('[UPDATE_CUSTOMER] Update data to apply:', JSON.stringify(updateData));
+
+        if (Object.keys(updateData).length === 0) {
+            console.log('[UPDATE_CUSTOMER] WARNING: No fields to update!');
+            return res.status(400).json({ message: "No fields to update" });
+        }
 
         // ================= UPDATE CUSTOMER =================
+        console.log('[UPDATE_CUSTOMER] Executing findByIdAndUpdate...');
         const updatedCustomer = await Customer.findByIdAndUpdate(
-            req.params.id,
-            updateData,
-            { new: true }
+            customerId,
+            { $set: updateData },
+            { new: true, runValidators: true }
         );
+
+        console.log('[UPDATE_CUSTOMER] Update successful! New data:', JSON.stringify(updatedCustomer));
 
         res.status(200).json({
             message: "Customer updated successfully",
             customer: updatedCustomer
         });
     } catch (err) {
+        console.error('[UPDATE_CUSTOMER] ERROR:', err.message);
+        console.error('[UPDATE_CUSTOMER] Stack:', err.stack);
         res.status(500).json({ message: "Failed to update customer", error: err.message });
     }
 };
@@ -214,26 +233,44 @@ const deleteCustomer = async (req, res) => {
 
         const token = authHeader.split(" ")[1];
         const decoded = jwt.verify(token, JWT_Secret);
+        const customerId = req.params.id;
+
+        // ================= DEBUG: Log delete attempt =================
+        console.log('[DELETE_CUSTOMER] Attempting to delete customer:', customerId);
+        console.log('[DELETE_CUSTOMER] User ID:', decoded.id);
 
         // ================= GET CUSTOMER =================
-        const customer = await Customer.findById(req.params.id);
+        const customer = await Customer.findById(customerId);
         if (!customer) {
+            console.log('[DELETE_CUSTOMER] ERROR: Customer not found with ID:', customerId);
             return res.status(404).json({ message: "Customer not found" });
         }
 
+        console.log('[DELETE_CUSTOMER] Found customer:', customer.name, 'Owner:', customer.owner);
+
         // Verify ownership
         if (customer.owner.toString() !== decoded.id) {
+            console.log('[DELETE_CUSTOMER] ERROR: Ownership check failed. Owner:', customer.owner, 'User:', decoded.id);
             return res.status(403).json({ message: "Unauthorized - customer does not belong to you" });
         }
 
         // ================= DELETE =================
-        const deletedCustomer = await Customer.findByIdAndDelete(req.params.id);
+        console.log('[DELETE_CUSTOMER] Executing findByIdAndDelete...');
+        const deletedCustomer = await Customer.findByIdAndDelete(customerId);
+
+        if (deletedCustomer) {
+            console.log('[DELETE_CUSTOMER] Delete successful! Deleted customer:', deletedCustomer.name);
+        } else {
+            console.log('[DELETE_CUSTOMER] WARNING: Delete returned null');
+        }
 
         res.status(200).json({
             message: "Customer deleted successfully",
             customer: deletedCustomer
         });
     } catch (err) {
+        console.error('[DELETE_CUSTOMER] ERROR:', err.message);
+        console.error('[DELETE_CUSTOMER] Stack:', err.stack);
         res.status(500).json({ message: "Failed to delete customer", error: err.message });
     }
 };

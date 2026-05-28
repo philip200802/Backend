@@ -34,6 +34,11 @@ const createInvoice = async (req, res) => {
             items
         } = req.body;
 
+        // Calculate default due date (2 days from now) if not provided
+        const defaultDueDate = new Date();
+        defaultDueDate.setDate(defaultDueDate.getDate() + 2);
+        const finalDueDate = dueDate || defaultDueDate;
+
         // Validate inputs
         if (!clientName || clientName.trim() === "") {
             return res.status(400).json({ message: "Client name is required" });
@@ -84,7 +89,7 @@ const createInvoice = async (req, res) => {
             amount: calculatedAmount,  // Calculate from items, don't trust frontend
             status: "Pending",
             owner,
-            dueDate,
+            dueDate: finalDueDate,
             description: description || "",
             amountDue: calculatedAmount,
             amountPaid: 0,
@@ -113,7 +118,7 @@ const createInvoice = async (req, res) => {
                     description,
                     formattedItems,
                     calculatedAmount,
-                    dueDate
+                    finalDueDate
                 );
 
                 console.log('[EMAIL] HTML generated, length:', emailHTML.length);
@@ -152,7 +157,7 @@ const createInvoice = async (req, res) => {
                                 <p>Client: ${clientName}</p>
                                 <p>Amount: ₦${calculatedAmount}</p>
                                 <p>Items: ${formattedItems.length}</p>
-                                <p>Due Date: ${dueDate ? new Date(dueDate).toLocaleDateString() : 'Not specified'}</p>
+                                <p>Due Date: ${new Date(finalDueDate).toLocaleDateString()}</p>
                                 <p>Invoice ID: ${newInvoice._id}</p>
                             </div>
                         </div>
