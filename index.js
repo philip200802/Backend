@@ -17,7 +17,16 @@ const port = process.env.PORT || 2008
 const URI = process.env.MONGO_URI;
 app.set("view engine", "ejs");
 app.set("views", __dirname + "/Views");
-app.use(cors());
+app.use(cors({
+    origin: [
+        "https://finvo-app.netlify.app",
+        "http://localhost:5173"
+    ],
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    credentials: true
+}));
+
+app.options("*", cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }))
 
