@@ -1,9 +1,10 @@
 const express = require("express");
 const router = express.Router();
-const { postSignup, postSignin, getDashboard } = require("../controllers/finvoUser.controller");
+const { postSignup, postSignin, getDashboard, refreshToken } = require("../controllers/finvoUser.controller");
 
 router.post("/register", postSignup);
 router.post("/login", postSignin);
+router.post("/refresh-token", refreshToken);
 router.get("/dashboard", getDashboard);
 router.get("/signup", (req, res) => {
     res.render("signup");

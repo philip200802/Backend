@@ -5,9 +5,10 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 const jwt = require("jsonwebtoken");
 
 const JWT_Secret = process.env.JWT_SECRET || process.env.jwt_secret;
+const TOKEN_EXPIRES_IN = "30m";
 
 const createToken = (user) =>
-  jwt.sign({ id: user._id, email: user.email }, JWT_Secret, { expiresIn: "1h" });
+  jwt.sign({ id: user._id, email: user.email }, JWT_Secret, { expiresIn: TOKEN_EXPIRES_IN });
 
 
 
@@ -183,8 +184,40 @@ const getDashboard = async (req, res) => {
   }
 };
 
+const refreshToken = async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return res.status(401).json({ message: "No token provided" });
+    }
+
+    const token = authHeader.split(" ")[1];
+    const decoded = jwt.verify(token, JWT_Secret);
+    const user = await Finvo.findById(decoded.id);
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const newToken = createToken(user);
+
+    return res.status(200).json({
+      message: "Token refreshed successfully",
+      token: newToken,
+      expiresIn: TOKEN_EXPIRES_IN,
+    });
+  } catch (err) {
+    if (err.name === "TokenExpiredError") {
+      return res.status(401).json({ message: "Token expired. Please sign in again." });
+    }
+
+    return res.status(401).json({ message: "Invalid token", error: err.message });
+  }
+};
+
 module.exports = {
   postSignup,
   postSignin,
   getDashboard,
+  refreshToken,
 };
