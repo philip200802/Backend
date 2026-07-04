@@ -26,23 +26,25 @@ app.use(cors({
     credentials: true
 }));
 
-app.options("*", cors());
+app.options(/.*/, cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }))
 
 
-mongoose.connect(URI)
-
-mongoose.connect(URI, {
-    serverSelectionTimeoutMS: 10000,
-    socketTimeoutMS: 45000,
-})
-    .then(() => {
-        console.log("Connected to MongoDB");
+if (!URI) {
+    console.error("MONGO_URI is not set");
+} else {
+    mongoose.connect(URI, {
+        serverSelectionTimeoutMS: 10000,
+        socketTimeoutMS: 45000,
     })
-    .catch((err) => {
-        console.error("Error connecting to MongoDB:", err);
-    });
+        .then(() => {
+            console.log("Connected to MongoDB");
+        })
+        .catch((err) => {
+            console.error("Error connecting to MongoDB:", err);
+        });
+}
 
 app.get("/", (req, res) => {
     res.send("Welcome to the Finvo Backend API! It is running perfectly.");

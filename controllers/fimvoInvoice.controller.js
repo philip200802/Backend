@@ -293,17 +293,21 @@ const updateInvoice = async (req, res) => {
             const formattedItems = [];
 
             for (let item of items) {
+                if (!item.description || item.description.trim() === "") {
+                    return res.status(400).json({ message: "Each item must have a description" });
+                }
+
                 const qty = Number(item.qty);
                 const unitPrice = Number(item.unitPrice);
 
-                if (qty <= 0 || unitPrice <= 0) {
+                if (!Number.isFinite(qty) || !Number.isFinite(unitPrice) || qty <= 0 || unitPrice <= 0) {
                     return res.status(400).json({ message: "Invalid item quantity or price" });
                 }
 
                 const total = qty * unitPrice;
                 newAmount += total;
                 formattedItems.push({
-                    description: item.description,
+                    description: item.description.trim(),
                     qty,
                     unitPrice,
                     total
@@ -385,10 +389,11 @@ const recordPayment = async (req, res) => {
         const decoded = jwt.verify(token, JWT_Secret);
 
         // ================= VALIDATION =================
-        const { amountPaid, paymentMethod, notes } = req.body;
+        const amountPaid = Number(req.body.amountPaid);
+        const { paymentMethod, notes } = req.body;
         const invoiceId = req.params.id;
 
-        if (!amountPaid || amountPaid <= 0) {
+        if (!Number.isFinite(amountPaid) || amountPaid <= 0) {
             return res.status(400).json({ message: "Payment amount must be greater than 0" });
         }
 
@@ -528,10 +533,11 @@ const generateInvoicePDF = async (req, res) => {
 
         const pdfsDir = path.join(__dirname, '../pdfs');
         if (!fs.existsSync(pdfsDir)) {
-            fs.mkdirSync(pdfsDir);
+            fs.mkdirSync(pdfsDir, { recursive: true });
         }
 
-        doc.pipe(fs.createWriteStream(filepath));
+        const outputStream = fs.createWriteStream(filepath);
+        doc.pipe(outputStream);
 
         doc.fontSize(20).text('INVOICES REPORT', 100, 50);
         doc.fontSize(12).text(`Period: ${dateRange}`, 100, 80);
@@ -563,9 +569,7 @@ const generateInvoicePDF = async (req, res) => {
         yPosition += 15;
         doc.text(`Total Due: $${totalAmount - totalPaid}`, 100, yPosition);
 
-        doc.end();
-
-        doc.on('finish', () => {
+        outputStream.on('finish', () => {
             res.download(filepath, filename, (err) => {
                 if (err) console.log(err);
                 fs.unlink(filepath, (err) => {
@@ -573,6 +577,8 @@ const generateInvoicePDF = async (req, res) => {
                 });
             });
         });
+
+        doc.end();
     } catch (err) {
         res.status(500).json({ message: "Failed to generate PDF", error: err.message });
     }

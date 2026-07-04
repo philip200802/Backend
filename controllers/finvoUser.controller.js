@@ -18,12 +18,23 @@ const postSignup = async (req, res) => {
   try {
     const { firstName, lastName, email, password } = req.body;
 
+    if (!firstName || !lastName || !email || !password) {
+      return res.status(400).json({ message: "All signup fields are required" });
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+
+    const existingUser = await Finvo.findOne({ email: normalizedEmail });
+    if (existingUser) {
+      return res.status(400).json({ message: "A user with this email already exists" });
+    }
+
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const user = await Finvo.create({
-      firstName,
-      lastName,
-      email,
+      firstName: firstName.trim(),
+      lastName: lastName.trim(),
+      email: normalizedEmail,
       password: hashedPassword,
     });
 
@@ -124,7 +135,11 @@ const getSignin = (req, res) => {
 const postSignin = async (req, res) => {
   try {
     const { email, password } = req.body;
-    const user = await Finvo.findOne({ email });
+    if (!email || !password) {
+      return res.status(400).json({ message: "Email and password are required" });
+    }
+
+    const user = await Finvo.findOne({ email: email.trim().toLowerCase() });
 
     if (!user) {
       return res.status(404).json({ message: "User not found" });
@@ -160,7 +175,7 @@ const getDashboard = async (req, res) => {
     }
     const token = authHeader.split(" ")[1];
     const decoded = jwt.verify(token, JWT_Secret);
-    const user = await Finvo.findOne({ email: decoded.email });
+    const user = await Finvo.findById(decoded.id);
     if (!user) return res.status(404).json({ message: "User not found" });
     return res.json({ message: "Dashboard accessed", user: { email: user.email, firstName: user.firstName } });
   } catch (err) {

@@ -2,6 +2,15 @@ const BRAND_COLOR = '#5e4a7a';
 const BRAND_ACCENT = '#b8956a';
 const BRAND_NAME = 'Finvo';
 
+const formatCurrency = (value) => {
+    const amount = Number(value);
+    if (!Number.isFinite(amount)) {
+        return '0';
+    }
+
+    return amount.toLocaleString('en-US', { maximumFractionDigits: 2 });
+};
+
 /**
  * Generate professional invoice email HTML for client
  * Optimized for all email clients using table-based layout
@@ -12,16 +21,18 @@ const clientInvoiceEmail = (clientName, invoiceId, description, items, calculate
 
     // Calculate tax (assuming 10% tax rate, adjust as needed)
     const taxRate = 0.1;
-    const subtotal = calculatedAmount / (1 + taxRate);
-    const tax = calculatedAmount - subtotal;
+    const totalAmount = Number(calculatedAmount) || 0;
+    const subtotal = totalAmount / (1 + taxRate);
+    const tax = totalAmount - subtotal;
 
     // Format items into table rows
-    const itemsHTML = items.map((item) => `
+    const safeItems = Array.isArray(items) ? items : [];
+    const itemsHTML = safeItems.map((item) => `
         <tr>
-            <td style="padding: 12px 15px; color: #666; font-size: 13px; border-bottom: 1px solid #e8e8e8;">${item.description}</td>
-            <td style="padding: 12px 15px; text-align: center; color: #666; font-size: 13px; border-bottom: 1px solid #e8e8e8;">${item.qty}</td>
-            <td style="padding: 12px 15px; text-align: right; color: #666; font-size: 13px; border-bottom: 1px solid #e8e8e8;">₦${item.unitPrice.toLocaleString()}</td>
-            <td style="padding: 12px 15px; text-align: right; color: #333; font-weight: 600; font-size: 13px; border-bottom: 1px solid #e8e8e8;">₦${item.total.toLocaleString()}</td>
+            <td style="padding: 12px 15px; color: #666; font-size: 13px; border-bottom: 1px solid #e8e8e8;">${item.description || ''}</td>
+            <td style="padding: 12px 15px; text-align: center; color: #666; font-size: 13px; border-bottom: 1px solid #e8e8e8;">${Number(item.qty) || 0}</td>
+            <td style="padding: 12px 15px; text-align: right; color: #666; font-size: 13px; border-bottom: 1px solid #e8e8e8;">₦${formatCurrency(item.unitPrice)}</td>
+            <td style="padding: 12px 15px; text-align: right; color: #333; font-weight: 600; font-size: 13px; border-bottom: 1px solid #e8e8e8;">₦${formatCurrency(item.total)}</td>
         </tr>
     `).join('');
 
@@ -104,7 +115,7 @@ const clientInvoiceEmail = (clientName, invoiceId, description, items, calculate
                                                             <strong>Sub-total:</strong>
                                                         </td>
                                                         <td style="padding: 10px 0; text-align: right; font-size: 13px; color: #666; border-bottom: 1px solid #e8e8e8;">
-                                                            ₦${subtotal.toLocaleString('en-US', { maximumFractionDigits: 2 })}
+                                                            ₦${formatCurrency(subtotal)}
                                                         </td>
                                                     </tr>
                                                     <tr>
@@ -112,7 +123,7 @@ const clientInvoiceEmail = (clientName, invoiceId, description, items, calculate
                                                             <strong>Tax (10%):</strong>
                                                         </td>
                                                         <td style="padding: 10px 0; text-align: right; font-size: 13px; color: #666; border-bottom: 1px solid #e8e8e8;">
-                                                            ₦${tax.toLocaleString('en-US', { maximumFractionDigits: 2 })}
+                                                            ₦${formatCurrency(tax)}
                                                         </td>
                                                     </tr>
                                                     <tr>
@@ -120,7 +131,7 @@ const clientInvoiceEmail = (clientName, invoiceId, description, items, calculate
                                                             Total:
                                                         </td>
                                                         <td style="padding: 15px 0; text-align: right; font-size: 16px; font-weight: bold; color: white; background-color: ${BRAND_ACCENT};">
-                                                            ₦${calculatedAmount.toLocaleString()}
+                                                            ₦${formatCurrency(totalAmount)}
                                                         </td>
                                                     </tr>
                                                 </table>
