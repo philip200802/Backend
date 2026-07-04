@@ -13,6 +13,7 @@ const mongoose = require('mongoose');
 const userRoute = require("./routes/finvoUser.route");
 const invoiceRoute = require("./routes/finvoInvoice.route");
 const customerRoute = require("./routes/finvoCustomer.route");
+const Invoice = require("./Models/finvoInvoice.model");
 const port = process.env.PORT || 2008
 const URI = process.env.MONGO_URI;
 app.set("view engine", "ejs");
@@ -40,6 +41,21 @@ if (!URI) {
     })
         .then(() => {
             console.log("Connected to MongoDB");
+            return Invoice.updateMany(
+                {
+                    $or: [
+                        { status: { $exists: false } },
+                        { status: null },
+                        { status: "" }
+                    ]
+                },
+                { $set: { status: "Pending" } }
+            );
+        })
+        .then((result) => {
+            if (result?.modifiedCount) {
+                console.log(`Backfilled invoice status for ${result.modifiedCount} document(s)`);
+            }
         })
         .catch((err) => {
             console.error("Error connecting to MongoDB:", err);

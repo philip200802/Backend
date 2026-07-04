@@ -8,6 +8,15 @@ const jwt = require("jsonwebtoken");
 const { clientInvoiceEmail } = require('../utils/emailTemplates');
 const JWT_Secret = process.env.JWT_SECRET || process.env.jwt_secret;
 
+const normalizeInvoice = (invoiceDoc) => {
+    const invoiceObject = typeof invoiceDoc?.toObject === 'function' ? invoiceDoc.toObject() : invoiceDoc;
+
+    return {
+        ...invoiceObject,
+        status: invoiceObject?.status || 'Pending'
+    };
+};
+
 const createInvoice = async (req, res) => {
     try {
         // ================= AUTH =================
@@ -201,7 +210,7 @@ const getInvoices = async (req, res) => {
         res.status(200).json({
             message: "Invoices retrieved successfully",
             count: invoices.length,
-            invoices
+            invoices: invoices.map(normalizeInvoice)
         });
     } catch (err) {
         res.status(500).json({
@@ -237,7 +246,7 @@ const getInvoiceById = async (req, res) => {
 
         res.status(200).json({
             message: "Invoice retrieved successfully",
-            invoice: inv
+            invoice: normalizeInvoice(inv)
         });
     } catch (err) {
         res.status(500).json({ message: "Failed to fetch invoice", error: err.message });
@@ -327,7 +336,7 @@ const updateInvoice = async (req, res) => {
 
         res.status(200).json({
             message: "Invoice updated successfully",
-            invoice: updatedInvoice
+            invoice: normalizeInvoice(updatedInvoice)
         });
     } catch (err) {
         res.status(500).json({ message: "Failed to update invoice", error: err.message });
@@ -450,7 +459,7 @@ const recordPayment = async (req, res) => {
         // ================= RESPONSE =================
         res.status(200).json({
             message: "Payment recorded successfully",
-            invoice: inv,
+            invoice: normalizeInvoice(inv),
             paymentSummary: {
                 amountPaid: inv.amountPaid,
                 amountDue: inv.amountDue,
@@ -494,6 +503,7 @@ const getPaymentHistory = async (req, res) => {
             totalAmount: inv.amount,
             amountPaid: inv.amountPaid,
             amountDue: inv.amountDue,
+            status: inv.status || 'Pending',
             paymentHistory: inv.paymentHistory
         });
     } catch (err) {
