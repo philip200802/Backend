@@ -42,7 +42,8 @@ const postSignup = async (req, res) => {
     const mailOptions = {
       from: "onboarding@resend.dev",
       to: "adegboyegaphilip6@gmail.com",
-      subject: "Welcome to Finvo 🎉", html: `
+      subject: "Welcome to Finvo 🎉", 
+      html: `
   <div style="margin:0;padding:0;background:#f4f6f8;font-family:Arial,sans-serif;">
 
     <div style="max-width:600px;margin:40px auto;background:#ffffff;border-radius:12px;overflow:hidden;border:1px solid #eaeaea;">
@@ -68,7 +69,7 @@ const postSignup = async (req, res) => {
 
         <!-- CTA -->
         <div style="text-align:center;margin:30px 0;">
-          <a href="https://yourfrontendlink.com/login"
+          <a href="https://finvo-app.netlify.app/login"
              style="background:#1e88e5;color:#ffffff;padding:14px 28px;text-decoration:none;border-radius:6px;font-weight:bold;display:inline-block;">
             Login to Your Account
           </a>

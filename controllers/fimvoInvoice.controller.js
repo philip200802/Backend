@@ -398,22 +398,33 @@ const recordPayment = async (req, res) => {
         const decoded = jwt.verify(token, JWT_Secret);
 
         // ================= VALIDATION =================
-        const amountPaid = Number(req.body.amountPaid);
+        const rawAmountPaid = req.body.amountPaid;
         const { paymentMethod, notes } = req.body;
+        const markAsPaid = req.body.markAsPaid === true || req.body.status === 'Paid' || req.body.action === 'mark-paid';
         const invoiceId = req.params.id;
-
-        if (!Number.isFinite(amountPaid) || amountPaid <= 0) {
-            return res.status(400).json({ message: "Payment amount must be greater than 0" });
-        }
-
-        if (!paymentMethod || paymentMethod.trim() === "") {
-            return res.status(400).json({ message: "Payment method is required" });
-        }
 
         // ================= FIND INVOICE =================
         const inv = await invoice.findById(invoiceId);
         if (!inv) {
             return res.status(404).json({ message: "Invoice not found" });
+        }
+
+        const amountPaid = markAsPaid
+            ? inv.amountDue
+            : Number(rawAmountPaid);
+
+        const resolvedPaymentMethod = paymentMethod && paymentMethod.trim() !== ""
+            ? paymentMethod.trim()
+            : markAsPaid
+                ? "Manual Mark as Paid"
+                : "";
+
+        if (!Number.isFinite(amountPaid) || amountPaid <= 0) {
+            return res.status(400).json({ message: "Payment amount must be greater than 0" });
+        }
+
+        if (!resolvedPaymentMethod) {
+            return res.status(400).json({ message: "Payment method is required" });
         }
 
         // Verify ownership
@@ -436,7 +447,7 @@ const recordPayment = async (req, res) => {
         // ================= RECORD PAYMENT =================
         inv.paymentHistory.push({
             amountPaid,
-            paymentMethod: paymentMethod.trim(),
+            paymentMethod: resolvedPaymentMethod,
             notes: notes || ""
         });
 
