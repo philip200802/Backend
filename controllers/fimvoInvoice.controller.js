@@ -159,18 +159,127 @@ const createInvoice = async (req, res) => {
                 from: "onboarding@resend.dev",
                 to: "adegboyegaphilip6@gmail.com",
                 subject: "New Invoice Created - Finvo",
-                html: `
-                        <div style="font-family:Arial;padding:20px;background:#f4f6f8">
-                            <div style="max-width:600px;margin:20px auto;background:#fff;padding:20px;border-radius:8px">
-                                <h2>New Invoice Created</h2>
-                                <p>Client: ${clientName}</p>
-                                <p>Amount: ₦${calculatedAmount}</p>
-                                <p>Items: ${formattedItems.length}</p>
-                                <p>Due Date: ${new Date(finalDueDate).toLocaleDateString()}</p>
-                                <p>Invoice ID: ${newInvoice._id}</p>
-                            </div>
-                        </div>
-                    `,
+             html: `
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+</head>
+
+<body style="margin:0;padding:40px;background:#f4f6f9;font-family:Arial,sans-serif;">
+
+<table width="100%" cellpadding="0" cellspacing="0">
+<tr>
+<td align="center">
+
+<table width="650" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;">
+
+<!-- Header -->
+<tr>
+<td style="background:#5E4A7A;padding:30px;text-align:center;color:white;">
+    <h1 style="margin:0;">Finvo</h1>
+    <p style="margin:8px 0 0;font-size:15px;">
+        New Invoice Notification
+    </p>
+</td>
+</tr>
+
+<!-- Body -->
+<tr>
+<td style="padding:35px;">
+
+<h2 style="margin-top:0;color:#333;">
+A new invoice has been created
+</h2>
+
+<p style="color:#666;font-size:15px;line-height:24px;">
+A user has successfully created a new invoice in Finvo.
+Here are the details:
+</p>
+
+<table width="100%" cellpadding="12" cellspacing="0" style="margin-top:25px;border-collapse:collapse;">
+
+<tr style="background:#f7f7f7;">
+<td><strong>Invoice ID</strong></td>
+<td>${newInvoice._id}</td>
+</tr>
+
+<tr>
+<td><strong>Client</strong></td>
+<td>${clientName}</td>
+</tr>
+
+<tr style="background:#f7f7f7;">
+<td><strong>Total Amount</strong></td>
+<td><strong>₦${Number(calculatedAmount).toLocaleString()}</strong></td>
+</tr>
+
+<tr>
+<td><strong>Items</strong></td>
+<td>${formattedItems.length}</td>
+</tr>
+
+<tr style="background:#f7f7f7;">
+<td><strong>Due Date</strong></td>
+<td>${new Date(finalDueDate).toLocaleDateString()}</td>
+</tr>
+
+<tr>
+<td><strong>Status</strong></td>
+<td>
+<span style="
+display:inline-block;
+background:#FFF4CC;
+color:#9A6700;
+padding:6px 12px;
+border-radius:20px;
+font-size:13px;
+font-weight:bold;
+">
+Pending
+</span>
+</td>
+</tr>
+
+</table>
+
+<div style="
+margin-top:30px;
+padding:18px;
+background:#EEF6FF;
+border-left:4px solid #5E4A7A;
+border-radius:6px;
+">
+
+<strong>Reminder</strong><br><br>
+
+Review this invoice from the admin dashboard if any action is required.
+
+</div>
+
+</td>
+</tr>
+
+<!-- Footer -->
+<tr>
+<td style="padding:25px;background:#fafafa;text-align:center;font-size:13px;color:#888;">
+
+Powered by <strong>Finvo</strong><br>
+
+© 2026 Finvo. All rights reserved.
+
+</td>
+</tr>
+
+</table>
+
+</td>
+</tr>
+</table>
+
+</body>
+</html>
+`,
             });
             console.log("Admin notification sent");
         } catch (adminEmailErr) {
