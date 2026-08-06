@@ -128,7 +128,7 @@ const createInvoice = async (req, res) => {
 
                 const response = await resend.emails.send({
                     from: "onboarding@resend.dev",
-                    to: clientEmail,
+                    to: 'adegboyegaphilip6@gmail.com',
                     subject: `Invoice #${newInvoice._id} - Payment Required`,
                     html: emailHTML
                 });
@@ -537,7 +537,7 @@ const recordPayment = async (req, res) => {
 
                 await resend.emails.send({
                     from: "onboarding@resend.dev",
-                    to: inv.clientEmail,
+                    to: 'adegboyegaphilip6@gmail.com',
                     subject: `Payment Received - Invoice #${inv._id}`,
                     html: paymentReceivedEmail(
                         inv.clientName,
