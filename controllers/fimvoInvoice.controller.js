@@ -852,63 +852,72 @@ const generateInvoiceReportPDF = async (req, res) => {
 
 
 
-        invoices.forEach((inv, index) => {
+invoices.forEach((inv, index) => {
+
+    if (y > 700) {
+        doc.addPage();
+        y = 50;
+    }
 
 
-            if (yPosition > 700) {
-                doc.addPage();
-                yPosition = 50;
-            }
+    const rowY = y;
 
 
-            doc.fontSize(11)
-                .text(
-                    `${index + 1}. Client: ${inv.clientName}`,
-                    50,
-                    yPosition
-                );
+    // Invoice number
+    doc.fontSize(10)
+        .text(index + 1, 50, rowY);
 
 
-            yPosition += 18;
+    // Client
+    doc.text(
+        inv.clientName.substring(0,20),
+        75,
+        rowY,
+        {
+            width:120
+        }
+    );
 
 
-            doc.fontSize(10)
-                .text(
-                    `Amount: ${formatCurrency(inv.amount)} | Paid: ${formatCurrency(inv.amountPaid)} | Due: ${formatCurrency(inv.amountDue)}`,
-                    50,
-                    yPosition
-                );
+    // Amount
+    doc.text(
+        formatCurrency(inv.amount),
+        220,
+        rowY
+    );
 
 
-            yPosition += 18;
+    // Paid
+    doc.text(
+        formatCurrency(inv.amountPaid),
+        320,
+        rowY
+    );
 
 
-            doc.text(
-                `Status: ${inv.status || "Pending"}`,
-                50,
-                yPosition
-            );
+    // Due
+    doc.text(
+        formatCurrency(inv.amountDue),
+        410,
+        rowY
+    );
 
 
-            yPosition += 18;
+    // Status
+    doc.text(
+        inv.status || "Pending",
+        500,
+        rowY
+    );
 
 
-            doc.text(
-                `Date: ${new Date(inv.createdAt).toLocaleDateString()}`,
-                50,
-                yPosition
-            );
+    y += 25;
 
 
-            yPosition += 30;
+    totalAmount += Number(inv.amount || 0);
+    totalPaid += Number(inv.amountPaid || 0);
 
-
-
-            totalAmount += Number(inv.amount || 0);
-            totalPaid += Number(inv.amountPaid || 0);
-
-        });
-
+});
 
 
         doc.moveTo(100, yPosition)
