@@ -5,7 +5,7 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 const jwt = require("jsonwebtoken");
 
 const JWT_Secret = process.env.JWT_SECRET || process.env.jwt_secret;
-const TOKEN_EXPIRES_IN = "2hrs";
+const TOKEN_EXPIRES_IN = "24h"; // Token expiration time
 
 const createToken = (user) =>
   jwt.sign({ id: user._id, email: user.email }, JWT_Secret, { expiresIn: TOKEN_EXPIRES_IN });
