@@ -42,7 +42,7 @@ const createInvoice = async (req, res) => {
         } = req.body;
 
         const defaultDueDate = new Date();
-        defaultDueDate.setDate(defaultDueDate.getDate() + 2);
+        defaultDueDate.setMonth(defaultDueDate.getMonth() + 3);
         const finalDueDate = dueDate || defaultDueDate;
 
         if (!clientName || clientName.trim() === "") {
