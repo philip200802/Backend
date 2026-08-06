@@ -5,10 +5,17 @@ const PDFDocument = require('pdfkit');
 const jwt = require("jsonwebtoken");
 const { clientInvoiceEmail, paymentReceivedEmail } = require('../utils/emailTemplates');
 const JWT_Secret = process.env.JWT_SECRET || process.env.jwt_secret;
+  const formatCurrency = (value) => {
+    return `N${Number(value || 0).toLocaleString('en-NG', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    })}`;
+};
 
 const normalizeInvoice = (invoiceDoc) => {
     const invoiceObject = typeof invoiceDoc?.toObject === 'function' ? invoiceDoc.toObject() : invoiceDoc;
 
+  
     return {
         ...invoiceObject,
         status: invoiceObject?.status || 'Pending'
@@ -633,7 +640,7 @@ const downloadInvoicePDF = async (req, res) => {
 
         doc.pipe(res);
 
-        const formatCurrency = (value) => `N${Number(value || 0).toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        
         const formatDate = (value) => value ? new Date(value).toLocaleDateString() : 'N/A';
         const safeStatus = inv.status || 'Pending';
         const sellerName = [inv.owner?.firstName, inv.owner?.lastName].filter(Boolean).join(' ') || 'N/A';
@@ -730,7 +737,10 @@ const downloadInvoicePDF = async (req, res) => {
 };
 
 const generateInvoiceReportPDF = async (req, res) => {
-    const authHeader = req.headers.authorization;
+    const { startMonth, startYear, endMonth, endYear } = req.query;
+    
+    try {
+          const authHeader = req.headers.authorization;
 
 if (!authHeader || !authHeader.startsWith("Bearer ")) {
     return res.status(401).json({ message: "No token provided" });
@@ -738,9 +748,7 @@ if (!authHeader || !authHeader.startsWith("Bearer ")) {
 
 const token = authHeader.split(" ")[1];
 const decoded = jwt.verify(token, JWT_Secret);
-    try {
-        const { startMonth, startYear, endMonth, endYear } = req.query;
-
+  
         if (!startMonth || !startYear) {
             return res.status(400).json({ message: "startMonth and startYear are required" });
         }
@@ -787,60 +795,80 @@ const decoded = jwt.verify(token, JWT_Secret);
         let yPosition = 140;
         let totalAmount = 0;
         let totalPaid = 0;
+invoices.forEach((inv, index) => {
 
-      invoices.forEach((inv, index) => {
-
-    // create new page if space is finished
     if (yPosition > 700) {
         doc.addPage();
         yPosition = 50;
     }
 
-
     doc.fontSize(11)
-        .text(`${index + 1}. Client: ${inv.clientName}`, 100, yPosition);
+        .text(`${index + 1}. Client: ${inv.clientName}`, 50, yPosition);
+
+    yPosition += 18;
+
+    doc.fontSize(10)
+        .text(
+            `Amount: ${formatCurrency(inv.amount)} | Paid: ${formatCurrency(inv.amountPaid)} | Due: ${formatCurrency(inv.amountDue)}`,
+            50,
+            yPosition
+        );
 
     yPosition += 18;
 
     doc.text(
-        `Amount: ${formatCurrency(inv.amount)} | Paid: ${formatCurrency(inv.amountPaid)} | Due: ${formatCurrency(inv.amountDue)}`,
-        100,
+        `Status: ${inv.status || "Pending"}`,
+        50,
         yPosition
     );
 
     yPosition += 18;
 
-    doc.text(`Status: ${inv.status}`, 100, yPosition);
-
-    yPosition += 18;
-
     doc.text(
         `Date: ${new Date(inv.createdAt).toLocaleDateString()}`,
-        100,
+        50,
         yPosition
     );
 
     yPosition += 30;
 
 
-    totalAmount += inv.amount;
-    totalPaid += inv.amountPaid;
+    totalAmount += inv.amount || 0;
+    totalPaid += inv.amountPaid || 0;
+
 });
-        doc.moveTo(100, yPosition).lineTo(500, yPosition).stroke();
-        yPosition += 20;
-        doc.fontSize(12).text(`Total Amount: $${totalAmount}`, 100, yPosition);
-        yPosition += 15;
-        doc.text(`Total Paid: ${formatCurrency(totalPaid)}`, 100, yPosition);
+
+
+doc.moveTo(100, yPosition)
+    .lineTo(500, yPosition)
+    .stroke();
+
+yPosition += 20;
+
+doc.fontSize(12)
+    .text(
+        `Total Amount: ${formatCurrency(totalAmount)}`,
+        100,
+        yPosition
+    );
 
 yPosition += 15;
 
-doc.text(`Total Due: ${formatCurrency(totalAmount - totalPaid)}`, 100, yPosition);
-        doc.end();
-    } catch (err) {
-        res.status(500).json({ message: "Failed to generate PDF", error: err.message });
-    }
-};
+doc.text(
+    `Total Paid: ${formatCurrency(totalPaid)}`,
+    100,
+    yPosition
+);
 
+yPosition += 15;
+
+doc.text(
+    `Total Due: ${formatCurrency(totalAmount - totalPaid)}`,
+    100,
+    yPosition
+);
+
+doc.end();
 module.exports = {
     createInvoice,
     getInvoices,
