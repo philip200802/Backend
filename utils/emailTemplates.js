@@ -140,7 +140,7 @@ Professional Invoice Management
 
 <tr>
 
-<td style="padding:40px;">
+<td style="padding:20px;">
 
 <h2 style="margin:0;color:#333;font-size:26px;">
 Hi ${clientName},
@@ -178,17 +178,17 @@ Invoice No
 </div>
 
 <div style="
-font-size:18px;
+font-size:15px;
 font-weight:bold;
 margin-top:6px;
 color:${BRAND_COLOR};
- word-break:break-all;">
+ word-break:break-word;">
 #${invoiceId}
 </div>
 
 </td>
 
-<td style="padding:20px;width:33%;">
+<td style="padding:12px;width:33%;">
 
 <div style="font-size:12px;color:#888;">
 Invoice Date
