@@ -2,8 +2,6 @@ const invoice = require('../Models/finvoInvoice.model');
 const { Resend } = require('resend');
 const resend = new Resend(process.env.RESEND_API_KEY);
 const PDFDocument = require('pdfkit');
-const fs = require('fs');
-const path = require('path');
 const jwt = require("jsonwebtoken");
 const { clientInvoiceEmail, paymentReceivedEmail } = require('../utils/emailTemplates');
 const JWT_Secret = process.env.JWT_SECRET || process.env.jwt_secret;
@@ -604,7 +602,134 @@ const getPaymentHistory = async (req, res) => {
     }
 };
 
-const generateInvoicePDF = async (req, res) => {
+const downloadInvoicePDF = async (req, res) => {
+    try {
+        const authHeader = req.headers.authorization;
+
+        if (!authHeader || !authHeader.startsWith("Bearer ")) {
+            return res.status(401).json({ message: "No token provided" });
+        }
+
+        const token = authHeader.split(" ")[1];
+        const decoded = jwt.verify(token, JWT_Secret);
+
+        const inv = await invoice
+            .findById(req.params.id)
+            .populate('owner', 'firstName lastName email');
+
+        if (!inv) {
+            return res.status(404).json({ message: "Invoice not found" });
+        }
+
+        if (inv.owner?._id?.toString() !== decoded.id) {
+            return res.status(403).json({ message: "Unauthorized - invoice does not belong to you" });
+        }
+
+        const doc = new PDFDocument({ size: 'A4', margin: 50 });
+        const filename = `invoice-${inv._id}.pdf`;
+
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename=${filename}`);
+
+        doc.pipe(res);
+
+        const formatCurrency = (value) => `N${Number(value || 0).toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        const formatDate = (value) => value ? new Date(value).toLocaleDateString() : 'N/A';
+        const safeStatus = inv.status || 'Pending';
+        const sellerName = [inv.owner?.firstName, inv.owner?.lastName].filter(Boolean).join(' ') || 'N/A';
+
+        doc.fontSize(24).fillColor('#1f2937').text('Finvo', 50, 45, { continued: true });
+        doc.fontSize(14).fillColor('#6b7280').text('  |  Professional Invoice');
+        doc.moveTo(50, 80).lineTo(545, 80).strokeColor('#d1d5db').stroke();
+
+        doc.fontSize(12).fillColor('#111827').text('Invoice Information', 50, 100);
+        doc.fontSize(10)
+            .fillColor('#374151')
+            .text(`Invoice ID: ${inv._id}`, 50, 120)
+            .text(`Created Date: ${formatDate(inv.createdAt)}`, 50, 136)
+            .text(`Due Date: ${formatDate(inv.dueDate)}`, 50, 152)
+            .text(`Status: ${safeStatus}`, 50, 168);
+
+        doc.fontSize(12).fillColor('#111827').text('Seller Information', 320, 100);
+        doc.fontSize(10)
+            .fillColor('#374151')
+            .text(`Name: ${sellerName}`, 320, 120)
+            .text(`Email: ${inv.owner?.email || 'N/A'}`, 320, 136);
+
+        doc.fontSize(12).fillColor('#111827').text('Client Information', 320, 168);
+        doc.fontSize(10)
+            .fillColor('#374151')
+            .text(`Name: ${inv.clientName || 'N/A'}`, 320, 188)
+            .text(`Email: ${inv.clientEmail || 'N/A'}`, 320, 204);
+
+        let y = 240;
+        const tableStartX = 50;
+        const colDescriptionX = 55;
+        const colQtyX = 320;
+        const colUnitPriceX = 380;
+        const colTotalX = 475;
+
+        const drawTableHeader = () => {
+            doc.rect(tableStartX, y, 495, 22).fill('#f3f4f6');
+            doc.fillColor('#111827').fontSize(10).text('Description', colDescriptionX, y + 6);
+            doc.text('Qty', colQtyX, y + 6);
+            doc.text('Unit Price', colUnitPriceX, y + 6);
+            doc.text('Total', colTotalX, y + 6);
+            y += 28;
+        };
+
+        doc.fontSize(12).fillColor('#111827').text('Items', 50, y - 20);
+        drawTableHeader();
+
+        const items = Array.isArray(inv.items) ? inv.items : [];
+        items.forEach((item) => {
+            if (y > 730) {
+                doc.addPage();
+                y = 50;
+                drawTableHeader();
+            }
+
+            const qty = Number(item.qty || 0);
+            const unitPrice = Number(item.unitPrice || 0);
+            const total = Number(item.total || qty * unitPrice);
+
+            doc.fillColor('#1f2937').fontSize(10).text(item.description || 'N/A', colDescriptionX, y, { width: 250 });
+            doc.text(String(qty), colQtyX, y);
+            doc.text(formatCurrency(unitPrice), colUnitPriceX, y);
+            doc.text(formatCurrency(total), colTotalX, y);
+
+            y += 22;
+            doc.moveTo(tableStartX, y - 4).lineTo(545, y - 4).strokeColor('#e5e7eb').stroke();
+        });
+
+        y += 12;
+        if (y > 680) {
+            doc.addPage();
+            y = 60;
+        }
+
+        doc.fontSize(12).fillColor('#111827').text('Summary', 50, y);
+        y += 20;
+        doc.fontSize(10)
+            .fillColor('#374151')
+            .text(`Total Amount: ${formatCurrency(inv.amount)}`, 50, y)
+            .text(`Amount Paid: ${formatCurrency(inv.amountPaid)}`, 50, y + 16)
+            .text(`Remaining Balance: ${formatCurrency(inv.amountDue)}`, 50, y + 32)
+            .text(`Payment Status: ${safeStatus}`, 50, y + 48);
+
+        const footerY = 760;
+        doc.moveTo(50, footerY - 16).lineTo(545, footerY - 16).strokeColor('#d1d5db').stroke();
+        doc.fontSize(10).fillColor('#4b5563')
+            .text('Thank you for your business.', 50, footerY)
+            .text('Powered by Finvo', 50, footerY + 14);
+
+        doc.end();
+    } catch (err) {
+        res.status(500).json({ message: "Failed to generate invoice PDF", error: err.message });
+    }
+};
+
+const generateInvoiceReportPDF = async (req, res) => {
     try {
         const { startMonth, startYear, endMonth, endYear } = req.query;
 
@@ -612,10 +737,20 @@ const generateInvoicePDF = async (req, res) => {
             return res.status(400).json({ message: "startMonth and startYear are required" });
         }
 
-        const endM = endMonth || startMonth;
-        const endY = endYear || startYear;
+        const startM = Number(startMonth);
+        const startY = Number(startYear);
+        const endM = endMonth ? Number(endMonth) : startM;
+        const endY = endYear ? Number(endYear) : startY;
 
-        const startDate = new Date(startYear, startMonth - 1, 1);
+        if (!Number.isInteger(startM) || !Number.isInteger(endM) || startM < 1 || startM > 12 || endM < 1 || endM > 12) {
+            return res.status(400).json({ message: "Month values must be between 1 and 12" });
+        }
+
+        if (!Number.isInteger(startY) || !Number.isInteger(endY)) {
+            return res.status(400).json({ message: "Year values must be valid numbers" });
+        }
+
+        const startDate = new Date(startY, startM - 1, 1);
         const endDate = new Date(endY, endM, 1);
 
         const invoices = await invoice.find({
@@ -626,20 +761,15 @@ const generateInvoicePDF = async (req, res) => {
             return res.status(404).json({ message: "No invoices found for this period" });
         }
 
-        const doc = new PDFDocument();
-        const dateRange = startMonth === endM && startYear === endY
-            ? `${startMonth}/${startYear}`
-            : `${startMonth}/${startYear}-${endM}/${endY}`;
+        const doc = new PDFDocument({ size: 'A4', margin: 50 });
+        const dateRange = startM === endM && startY === endY
+            ? `${startM}/${startY}`
+            : `${startM}/${startY}-${endM}/${endY}`;
         const filename = `invoices-${dateRange}.pdf`;
-        const filepath = path.join(__dirname, '../pdfs', filename);
 
-        const pdfsDir = path.join(__dirname, '../pdfs');
-        if (!fs.existsSync(pdfsDir)) {
-            fs.mkdirSync(pdfsDir, { recursive: true });
-        }
-
-        const outputStream = fs.createWriteStream(filepath);
-        doc.pipe(outputStream);
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename=${filename}`);
+        doc.pipe(res);
 
         doc.fontSize(20).text('INVOICES REPORT', 100, 50);
         doc.fontSize(12).text(`Period: ${dateRange}`, 100, 80);
@@ -671,15 +801,6 @@ const generateInvoicePDF = async (req, res) => {
         yPosition += 15;
         doc.text(`Total Due: $${totalAmount - totalPaid}`, 100, yPosition);
 
-        outputStream.on('finish', () => {
-            res.download(filepath, filename, (err) => {
-                if (err) console.log(err);
-                fs.unlink(filepath, (err) => {
-                    if (err) console.log(err);
-                });
-            });
-        });
-
         doc.end();
     } catch (err) {
         res.status(500).json({ message: "Failed to generate PDF", error: err.message });
@@ -694,5 +815,6 @@ module.exports = {
     deleteInvoice,
     recordPayment,
     getPaymentHistory,
-    generateInvoicePDF
+    downloadInvoicePDF,
+    generateInvoiceReportPDF
 };

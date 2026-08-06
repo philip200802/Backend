@@ -8,12 +8,14 @@ const {
     deleteInvoice,
     recordPayment,
     getPaymentHistory,
-    generateInvoicePDF
+    downloadInvoicePDF,
+    generateInvoiceReportPDF
 } = require('../controllers/fimvoInvoice.controller');
 
 router.post('/create', createInvoice);
 router.get('/all', getInvoices);
-router.get('/download', generateInvoicePDF);
+router.get('/download', generateInvoiceReportPDF);
+router.get('/pdf/:id', downloadInvoicePDF);
 
 router.post('/:id/payment', recordPayment);
 router.get('/:id/payments', getPaymentHistory);
