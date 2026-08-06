@@ -6,6 +6,12 @@ let invoiceSchema = mongoose.Schema({
         required: true,
         trim: true
     },
+    clientEmail: {
+    type: String,
+    required: true,
+    trim: true,
+    lowercase: true
+},
     amount: {
         type: Number,
         required: true
