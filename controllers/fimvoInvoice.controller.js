@@ -5,7 +5,7 @@ const PDFDocument = require('pdfkit');
 const fs = require('fs');
 const path = require('path');
 const jwt = require("jsonwebtoken");
-const { clientInvoiceEmail } = require('../utils/emailTemplates');
+const { clientInvoiceEmail, paymentReceivedEmail } = require('../utils/emailTemplates');
 const JWT_Secret = process.env.JWT_SECRET || process.env.jwt_secret;
 
 const normalizeInvoice = (invoiceDoc) => {
@@ -95,6 +95,7 @@ const createInvoice = async (req, res) => {
         // Create invoice with server-calculated amount
         const newInvoice = await invoice.create({
             clientName: clientName.trim(),
+            clientEmail,
             amount: calculatedAmount,  // Calculate from items, don't trust frontend
             status: "Pending",
             owner,
@@ -117,7 +118,8 @@ const createInvoice = async (req, res) => {
 
         setImmediate(async () => {
             try {
-                console.log('[EMAIL] Starting email send to:', clientEmail);
+                cons
+                ole.log('[EMAIL] Starting email send to:', clientEmail);
                 console.log('[EMAIL] Items received:', JSON.stringify(formattedItems));
                 console.log('[EMAIL] Items count:', formattedItems.length);
 
@@ -575,6 +577,28 @@ const recordPayment = async (req, res) => {
         }
 
         await inv.save();
+        if (inv.status === "Paid") {
+    try {
+
+        await resend.emails.send({
+            from: "onboarding@resend.dev",
+            to: inv.clientEmail,
+            subject: `Payment Received - Invoice #${inv._id}`,
+            html: paymentReceivedEmail(
+                inv.clientName,
+                inv._id,
+                inv.amountPaid
+            )
+        });
+
+        console.log("Payment receipt sent.");
+
+    } catch (err) {
+
+        console.log("Payment receipt email error:", err.message);
+
+    }
+}
 
         // ================= RESPONSE =================
         res.status(200).json({

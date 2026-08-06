@@ -532,10 +532,124 @@ color:#999;
 </body>
 
 </html>
+
 `;
+};
+const paymentReceivedEmail = (
+    clientName,
+    invoiceId,
+    amountPaid
+) => {
+
+return `
+<!DOCTYPE html>
+
+<html>
+
+<body style="font-family:Arial;background:#f5f5f5;padding:40px;">
+
+<table
+width="600"
+align="center"
+style="
+background:white;
+border-radius:10px;
+padding:40px;
+">
+
+<tr>
+
+<td align="center">
+
+<h1 style="color:#28a745;">
+Payment Received
+</h1>
+
+</td>
+
+</tr>
+
+<tr>
+
+<td>
+
+<p>Hi <strong>${clientName}</strong>,</p>
+
+<p>
+
+We have successfully received your payment.
+
+Thank you for your prompt payment.
+
+</p>
+
+<table
+width="100%"
+style="
+margin:30px 0;
+border-collapse:collapse;
+">
+
+<tr>
+
+<td><strong>Invoice</strong></td>
+
+<td>#${invoiceId}</td>
+
+</tr>
+
+<tr>
+
+<td><strong>Amount Paid</strong></td>
+
+<td>₦${Number(amountPaid).toLocaleString()}</td>
+
+</tr>
+
+<tr>
+
+<td><strong>Status</strong></td>
+
+<td style="color:green;">
+PAID
+</td>
+
+</tr>
+
+</table>
+
+<div
+style="
+background:#EAF9EF;
+padding:20px;
+border-left:5px solid #28a745;
+">
+
+Your invoice has now been marked as fully paid.
+
+</div>
+
+<p style="margin-top:30px;">
+
+Thank you for doing business with <strong>Finvo</strong>.
+
+</p>
+
+</td>
+
+</tr>
+
+</table>
+
+</body>
+
+</html>
+`;
+
 };
 
 module.exports = {
-    clientInvoiceEmail
+    clientInvoiceEmail,
+    paymentReceivedEmail
 };        
 
