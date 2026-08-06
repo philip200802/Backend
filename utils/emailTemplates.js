@@ -94,10 +94,10 @@ No invoice items available.
 
 <body style="
 margin:0;
-padding:30px;
+padding:10px;
 background:#f5f7fb;
 font-family:Arial,Helvetica,sans-serif;
-">
+"> 
 
 <table
 width="100%"
@@ -117,12 +117,12 @@ box-shadow:0 8px 30px rgba(0,0,0,.08);
 <td
 style="
 background:${BRAND_COLOR};
-padding:40px;
+padding:24px;
 text-align:center;
 color:white;
 ">
 
-<h1 style="margin:0;font-size:34px;">
+<h1 style="margin:0;font-size:28px;">
 ${BRAND_NAME}
 </h1>
 
@@ -182,7 +182,7 @@ font-size:18px;
 font-weight:bold;
 margin-top:6px;
 color:${BRAND_COLOR};
-">
+ word-break:break-all;">
 #${invoiceId}
 </div>
 
