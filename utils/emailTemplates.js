@@ -39,14 +39,7 @@ const clientInvoiceEmail = (
         })
         : "Not specified";
 
-    const taxRate = 0.1;
-
     const totalAmount = Number(calculatedAmount) || 0;
-
-    const subtotal = totalAmount / (1 + taxRate);
-
-    const tax = totalAmount - subtotal;
-
     const safeItems = Array.isArray(items) ? items : [];
 
     const itemsHTML =
@@ -327,29 +320,7 @@ style="border-collapse:collapse;">
 
 <tr>
 
-<td align="right"
-style="color:#666;">
-Subtotal
-</td>
 
-<td align="right">
-₦${formatCurrency(subtotal)}
-</td>
-
-</tr>
-
-<tr>
-
-<td align="right"
-style="color:#666;">
-Tax (10%)
-</td>
-
-<td align="right">
-₦${formatCurrency(tax)}
-</td>
-
-</tr>
 
 <tr>
 
