@@ -19,7 +19,6 @@ const normalizeInvoice = (invoiceDoc) => {
 
 const createInvoice = async (req, res) => {
     try {
-        // ================= AUTH =================
         const authHeader = req.headers.authorization;
 
         if (!authHeader || !authHeader.startsWith("Bearer ")) {
@@ -34,7 +33,6 @@ const createInvoice = async (req, res) => {
             return res.status(400).json({ message: "Invalid token - no user ID" });
         }
 
-        // ================= DATA =================
         const {
             clientName,
             dueDate,
@@ -43,12 +41,10 @@ const createInvoice = async (req, res) => {
             items
         } = req.body;
 
-        // Calculate default due date (2 days from now) if not provided
         const defaultDueDate = new Date();
         defaultDueDate.setDate(defaultDueDate.getDate() + 2);
         const finalDueDate = dueDate || defaultDueDate;
 
-        // Validate inputs
         if (!clientName || clientName.trim() === "") {
             return res.status(400).json({ message: "Client name is required" });
         }
@@ -61,7 +57,6 @@ const createInvoice = async (req, res) => {
             return res.status(400).json({ message: "Items array is required and must have at least 1 item" });
         }
 
-        // Validate and process items
         const formattedItems = [];
         let calculatedAmount = 0;
 
@@ -92,11 +87,10 @@ const createInvoice = async (req, res) => {
             });
         }
 
-        // Create invoice with server-calculated amount
         const newInvoice = await invoice.create({
             clientName: clientName.trim(),
             clientEmail,
-            amount: calculatedAmount,  // Calculate from items, don't trust frontend
+            amount: calculatedAmount,
             status: "Pending",
             owner,
             dueDate: finalDueDate,
@@ -106,20 +100,17 @@ const createInvoice = async (req, res) => {
             items: formattedItems
         });
 
-        // ================= RESPONSE FIRST (IMMEDIATE) =================
         res.status(201).json({
             message: "Invoice created successfully",
             invoiceId: newInvoice._id,
             amount: calculatedAmount
         });
 
-        // ================= EMAIL (ASYNC - NON-BLOCKING) =================
         console.log('[INVOICE] Invoice created, triggering async email send...');
 
         setImmediate(async () => {
             try {
-                cons
-                ole.log('[EMAIL] Starting email send to:', clientEmail);
+                console.log('[EMAIL] Starting email send to:', clientEmail);
                 console.log('[EMAIL] Items received:', JSON.stringify(formattedItems));
                 console.log('[EMAIL] Items count:', formattedItems.length);
 
@@ -147,7 +138,7 @@ const createInvoice = async (req, res) => {
                 if (response.error) {
                     console.error(`[EMAIL] Failed to send invoice to ${clientEmail}:`, response.error);
                 } else {
-                    console.log(`[EMAIL] ✅ Invoice #${newInvoice._id} sent successfully to ${clientEmail}`);
+                    console.log(`[EMAIL] Invoice #${newInvoice._id} sent successfully to ${clientEmail}`);
                 }
             } catch (err) {
                 console.error('[EMAIL] Error sending invoice email:', err.message);
@@ -155,13 +146,12 @@ const createInvoice = async (req, res) => {
             }
         });
 
-        // Send email to ADMIN
         try {
             await resend.emails.send({
                 from: "onboarding@resend.dev",
                 to: "adegboyegaphilip6@gmail.com",
                 subject: "New Invoice Created - Finvo",
-             html: `
+                html: `
 <!DOCTYPE html>
 <html>
 <head>
@@ -176,7 +166,6 @@ const createInvoice = async (req, res) => {
 
 <table width="650" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;">
 
-<!-- Header -->
 <tr>
 <td style="background:#5E4A7A;padding:30px;text-align:center;color:white;">
     <h1 style="margin:0;">Finvo</h1>
@@ -186,7 +175,6 @@ const createInvoice = async (req, res) => {
 </td>
 </tr>
 
-<!-- Body -->
 <tr>
 <td style="padding:35px;">
 
@@ -262,7 +250,6 @@ Review this invoice from the admin dashboard if any action is required.
 </td>
 </tr>
 
-<!-- Footer -->
 <tr>
 <td style="padding:25px;background:#fafafa;text-align:center;font-size:13px;color:#888;">
 
@@ -298,7 +285,6 @@ Powered by <strong>Finvo</strong><br>
 
 const getInvoices = async (req, res) => {
     try {
-        // ================= AUTH =================
         const authHeader = req.headers.authorization;
 
         if (!authHeader || !authHeader.startsWith("Bearer ")) {
@@ -312,7 +298,6 @@ const getInvoices = async (req, res) => {
             return res.status(400).json({ message: "Invalid token" });
         }
 
-        // ================= GET INVOICES FOR THIS USER =================
         const invoices = await invoice
             .find({ owner: decoded.id })
             .sort({ createdAt: -1 })
@@ -331,10 +316,8 @@ const getInvoices = async (req, res) => {
     }
 };
 
-// GET single invoice
 const getInvoiceById = async (req, res) => {
     try {
-        // ================= AUTH =================
         const authHeader = req.headers.authorization;
 
         if (!authHeader || !authHeader.startsWith("Bearer ")) {
@@ -344,13 +327,11 @@ const getInvoiceById = async (req, res) => {
         const token = authHeader.split(" ")[1];
         const decoded = jwt.verify(token, JWT_Secret);
 
-        // ================= GET INVOICE =================
         const inv = await invoice.findById(req.params.id).populate('owner', 'firstName lastName email');
         if (!inv) {
             return res.status(404).json({ message: "Invoice not found" });
         }
 
-        // Verify ownership
         if (inv.owner._id.toString() !== decoded.id) {
             return res.status(403).json({ message: "Unauthorized - invoice does not belong to you" });
         }
@@ -364,10 +345,8 @@ const getInvoiceById = async (req, res) => {
     }
 };
 
-// UPDATE invoice
 const updateInvoice = async (req, res) => {
     try {
-        // ================= AUTH =================
         const authHeader = req.headers.authorization;
 
         if (!authHeader || !authHeader.startsWith("Bearer ")) {
@@ -377,37 +356,31 @@ const updateInvoice = async (req, res) => {
         const token = authHeader.split(" ")[1];
         const decoded = jwt.verify(token, JWT_Secret);
 
-        // ================= VALIDATION =================
         const { clientName, dueDate, description, items, status } = req.body;
 
         if (clientName && clientName.trim() === "") {
             return res.status(400).json({ message: "Client name cannot be empty" });
         }
 
-        // ================= GET EXISTING INVOICE =================
         const existingInvoice = await invoice.findById(req.params.id);
         if (!existingInvoice) {
             return res.status(404).json({ message: "Invoice not found" });
         }
 
-        // Verify ownership
         if (existingInvoice.owner.toString() !== decoded.id) {
             return res.status(403).json({ message: "Unauthorized - invoice does not belong to you" });
         }
 
-        // Don't allow updating if invoice is already paid
         if (existingInvoice.status === 'Paid' && status !== 'Paid') {
             return res.status(400).json({ message: "Cannot change status of a paid invoice" });
         }
 
-        // ================= UPDATE DATA =================
         const updateData = {};
         if (clientName) updateData.clientName = clientName.trim();
         if (dueDate) updateData.dueDate = dueDate;
         if (description) updateData.description = description;
         if (status) updateData.status = status;
 
-        // Recalculate amount if items are provided
         if (Array.isArray(items) && items.length > 0) {
             let newAmount = 0;
             const formattedItems = [];
@@ -438,7 +411,6 @@ const updateInvoice = async (req, res) => {
             updateData.items = formattedItems;
         }
 
-        // ================= UPDATE INVOICE =================
         const updatedInvoice = await invoice.findByIdAndUpdate(
             req.params.id,
             updateData,
@@ -454,10 +426,8 @@ const updateInvoice = async (req, res) => {
     }
 };
 
-// DELETE invoice
 const deleteInvoice = async (req, res) => {
     try {
-        // ================= AUTH =================
         const authHeader = req.headers.authorization;
 
         if (!authHeader || !authHeader.startsWith("Bearer ")) {
@@ -467,23 +437,19 @@ const deleteInvoice = async (req, res) => {
         const token = authHeader.split(" ")[1];
         const decoded = jwt.verify(token, JWT_Secret);
 
-        // ================= GET INVOICE =================
         const inv = await invoice.findById(req.params.id);
         if (!inv) {
             return res.status(404).json({ message: "Invoice not found" });
         }
 
-        // Verify ownership
         if (inv.owner.toString() !== decoded.id) {
             return res.status(403).json({ message: "Unauthorized - invoice does not belong to you" });
         }
 
-        // Don't allow deleting paid invoices
         if (inv.status === 'Paid') {
             return res.status(400).json({ message: "Cannot delete a paid invoice" });
         }
 
-        // ================= DELETE =================
         const deletedInvoice = await invoice.findByIdAndDelete(req.params.id);
 
         res.status(200).json({
@@ -495,10 +461,8 @@ const deleteInvoice = async (req, res) => {
     }
 };
 
-// PAYMENT TRACKING - Record a payment
 const recordPayment = async (req, res) => {
     try {
-        // ================= AUTH =================
         const authHeader = req.headers.authorization;
 
         if (!authHeader || !authHeader.startsWith("Bearer ")) {
@@ -508,13 +472,11 @@ const recordPayment = async (req, res) => {
         const token = authHeader.split(" ")[1];
         const decoded = jwt.verify(token, JWT_Secret);
 
-        // ================= VALIDATION =================
         const rawAmountPaid = req.body.amountPaid;
         const { paymentMethod, notes } = req.body;
         const markAsPaid = req.body.markAsPaid === true || req.body.status === 'Paid' || req.body.action === 'mark-paid';
         const invoiceId = req.params.id;
 
-        // ================= FIND INVOICE =================
         const inv = await invoice.findById(invoiceId);
         if (!inv) {
             return res.status(404).json({ message: "Invoice not found" });
@@ -538,39 +500,32 @@ const recordPayment = async (req, res) => {
             return res.status(400).json({ message: "Payment method is required" });
         }
 
-        // Verify ownership
         if (inv.owner.toString() !== decoded.id) {
             return res.status(403).json({ message: "Unauthorized - invoice does not belong to you" });
         }
 
-        // Check if already fully paid
         if (inv.status === 'Paid') {
             return res.status(400).json({ message: "Invoice is already fully paid" });
         }
 
-        // Check if payment exceeds remaining amount due
         if (amountPaid > inv.amountDue) {
             return res.status(400).json({
                 message: `Payment amount exceeds remaining due amount of ₦${inv.amountDue}`
             });
         }
 
-        // ================= RECORD PAYMENT =================
         inv.paymentHistory.push({
             amountPaid,
             paymentMethod: resolvedPaymentMethod,
             notes: notes || ""
         });
 
-        // Update payment tracking
         inv.amountPaid += amountPaid;
         inv.amountDue = inv.amount - inv.amountPaid;
 
-        // Auto-update status based on payment
         if (inv.amountDue <= 0) {
             inv.status = 'Paid';
         } else if (inv.status === 'Overdue' && inv.amountDue > 0) {
-            // Keep overdue status if still not paid
             inv.status = 'Overdue';
         } else {
             inv.status = 'Pending';
@@ -578,29 +533,28 @@ const recordPayment = async (req, res) => {
 
         await inv.save();
         if (inv.status === "Paid") {
-    try {
+            try {
 
-        await resend.emails.send({
-            from: "onboarding@resend.dev",
-            to: inv.clientEmail,
-            subject: `Payment Received - Invoice #${inv._id}`,
-            html: paymentReceivedEmail(
-                inv.clientName,
-                inv._id,
-                inv.amountPaid
-            )
-        });
+                await resend.emails.send({
+                    from: "onboarding@resend.dev",
+                    to: inv.clientEmail,
+                    subject: `Payment Received - Invoice #${inv._id}`,
+                    html: paymentReceivedEmail(
+                        inv.clientName,
+                        inv._id,
+                        inv.amountPaid
+                    )
+                });
 
-        console.log("Payment receipt sent.");
+                console.log("Payment receipt sent.");
 
-    } catch (err) {
+            } catch (err) {
 
-        console.log("Payment receipt email error:", err.message);
+                console.log("Payment receipt email error:", err.message);
 
-    }
-}
+            }
+        }
 
-        // ================= RESPONSE =================
         res.status(200).json({
             message: "Payment recorded successfully",
             invoice: normalizeInvoice(inv),
@@ -615,10 +569,8 @@ const recordPayment = async (req, res) => {
     }
 };
 
-// GET payment history
 const getPaymentHistory = async (req, res) => {
     try {
-        // ================= AUTH =================
         const authHeader = req.headers.authorization;
 
         if (!authHeader || !authHeader.startsWith("Bearer ")) {
@@ -628,18 +580,15 @@ const getPaymentHistory = async (req, res) => {
         const token = authHeader.split(" ")[1];
         const decoded = jwt.verify(token, JWT_Secret);
 
-        // ================= GET INVOICE =================
         const inv = await invoice.findById(req.params.id);
         if (!inv) {
             return res.status(404).json({ message: "Invoice not found" });
         }
 
-        // Verify ownership
         if (inv.owner.toString() !== decoded.id) {
             return res.status(403).json({ message: "Unauthorized - invoice does not belong to you" });
         }
 
-        // ================= RESPONSE =================
         res.status(200).json({
             message: "Payment history retrieved successfully",
             invoiceId: inv._id,
@@ -655,7 +604,6 @@ const getPaymentHistory = async (req, res) => {
     }
 };
 
-// Generate PDF with payment details
 const generateInvoicePDF = async (req, res) => {
     try {
         const { startMonth, startYear, endMonth, endYear } = req.query;

@@ -3,10 +3,8 @@ const jwt = require('jsonwebtoken');
 
 const JWT_Secret = process.env.JWT_SECRET || process.env.jwt_secret;
 
-// CREATE CUSTOMER
 const createCustomer = async (req, res) => {
     try {
-        // ================= AUTH =================
         const authHeader = req.headers.authorization;
 
         if (!authHeader || !authHeader.startsWith("Bearer ")) {
@@ -21,7 +19,6 @@ const createCustomer = async (req, res) => {
             return res.status(400).json({ message: "Invalid token - no user ID" });
         }
 
-        // ================= VALIDATION =================
         const { name, email, phone, company, address, notes } = req.body;
 
         if (!name || name.trim() === "") {
@@ -32,13 +29,11 @@ const createCustomer = async (req, res) => {
             return res.status(400).json({ message: "Customer email is required" });
         }
 
-        // Check if customer with same email already exists for this user
         const existingCustomer = await Customer.findOne({ owner, email: email.toLowerCase() });
         if (existingCustomer) {
             return res.status(400).json({ message: "Customer with this email already exists" });
         }
 
-        // ================= CREATE CUSTOMER =================
         const newCustomer = await Customer.create({
             owner,
             name: name.trim(),
@@ -62,10 +57,8 @@ const createCustomer = async (req, res) => {
     }
 };
 
-// GET ALL CUSTOMERS FOR USER
 const getCustomers = async (req, res) => {
     try {
-        // ================= AUTH =================
         const authHeader = req.headers.authorization;
 
         if (!authHeader || !authHeader.startsWith("Bearer ")) {
@@ -79,7 +72,6 @@ const getCustomers = async (req, res) => {
             return res.status(400).json({ message: "Invalid token" });
         }
 
-        // ================= GET CUSTOMERS =================
         const customers = await Customer.find({ owner: decoded.id })
             .sort({ createdAt: -1 });
 
@@ -96,10 +88,8 @@ const getCustomers = async (req, res) => {
     }
 };
 
-// GET SINGLE CUSTOMER
 const getCustomerById = async (req, res) => {
     try {
-        // ================= AUTH =================
         const authHeader = req.headers.authorization;
 
         if (!authHeader || !authHeader.startsWith("Bearer ")) {
@@ -109,13 +99,11 @@ const getCustomerById = async (req, res) => {
         const token = authHeader.split(" ")[1];
         const decoded = jwt.verify(token, JWT_Secret);
 
-        // ================= GET CUSTOMER =================
         const customer = await Customer.findById(req.params.id);
         if (!customer) {
             return res.status(404).json({ message: "Customer not found" });
         }
 
-        // Verify ownership
         if (customer.owner.toString() !== decoded.id) {
             return res.status(403).json({ message: "Unauthorized - customer does not belong to you" });
         }
@@ -129,10 +117,8 @@ const getCustomerById = async (req, res) => {
     }
 };
 
-// UPDATE CUSTOMER
 const updateCustomer = async (req, res) => {
     try {
-        // ================= AUTH =================
         const authHeader = req.headers.authorization;
 
         if (!authHeader || !authHeader.startsWith("Bearer ")) {
@@ -143,12 +129,10 @@ const updateCustomer = async (req, res) => {
         const decoded = jwt.verify(token, JWT_Secret);
         const customerId = req.params.id;
 
-        // ================= DEBUG: Log incoming data =================
         console.log('[UPDATE_CUSTOMER] Attempting to update customer:', customerId);
         console.log('[UPDATE_CUSTOMER] Received body:', JSON.stringify(req.body));
         console.log('[UPDATE_CUSTOMER] User ID:', decoded.id);
 
-        // ================= VALIDATION =================
         const { name, email, phone, company, address, notes } = req.body;
 
         if (name && name.trim() === "") {
@@ -159,20 +143,17 @@ const updateCustomer = async (req, res) => {
             return res.status(400).json({ message: "Customer email cannot be empty" });
         }
 
-        // ================= GET EXISTING CUSTOMER =================
         const existingCustomer = await Customer.findById(customerId);
         if (!existingCustomer) {
             console.log('[UPDATE_CUSTOMER] ERROR: Customer not found with ID:', customerId);
             return res.status(404).json({ message: "Customer not found" });
         }
 
-        // Verify ownership
         if (existingCustomer.owner.toString() !== decoded.id) {
             console.log('[UPDATE_CUSTOMER] ERROR: Ownership check failed. Owner:', existingCustomer.owner, 'User:', decoded.id);
             return res.status(403).json({ message: "Unauthorized - customer does not belong to you" });
         }
 
-        // Check if new email already exists for this user (if email is being changed)
         if (email && email.toLowerCase() !== existingCustomer.email) {
             const duplicateEmail = await Customer.findOne({
                 owner: decoded.id,
@@ -184,7 +165,6 @@ const updateCustomer = async (req, res) => {
             }
         }
 
-        // ================= UPDATE DATA =================
         const updateData = {};
         if (name) updateData.name = name.trim();
         if (email) updateData.email = email.trim().toLowerCase();
@@ -200,7 +180,6 @@ const updateCustomer = async (req, res) => {
             return res.status(400).json({ message: "No fields to update" });
         }
 
-        // ================= UPDATE CUSTOMER =================
         console.log('[UPDATE_CUSTOMER] Executing findByIdAndUpdate...');
         const updatedCustomer = await Customer.findByIdAndUpdate(
             customerId,
@@ -221,10 +200,8 @@ const updateCustomer = async (req, res) => {
     }
 };
 
-// DELETE CUSTOMER
 const deleteCustomer = async (req, res) => {
     try {
-        // ================= AUTH =================
         const authHeader = req.headers.authorization;
 
         if (!authHeader || !authHeader.startsWith("Bearer ")) {
@@ -235,11 +212,9 @@ const deleteCustomer = async (req, res) => {
         const decoded = jwt.verify(token, JWT_Secret);
         const customerId = req.params.id;
 
-        // ================= DEBUG: Log delete attempt =================
         console.log('[DELETE_CUSTOMER] Attempting to delete customer:', customerId);
         console.log('[DELETE_CUSTOMER] User ID:', decoded.id);
 
-        // ================= GET CUSTOMER =================
         const customer = await Customer.findById(customerId);
         if (!customer) {
             console.log('[DELETE_CUSTOMER] ERROR: Customer not found with ID:', customerId);
@@ -248,13 +223,11 @@ const deleteCustomer = async (req, res) => {
 
         console.log('[DELETE_CUSTOMER] Found customer:', customer.name, 'Owner:', customer.owner);
 
-        // Verify ownership
         if (customer.owner.toString() !== decoded.id) {
             console.log('[DELETE_CUSTOMER] ERROR: Ownership check failed. Owner:', customer.owner, 'User:', decoded.id);
             return res.status(403).json({ message: "Unauthorized - customer does not belong to you" });
         }
 
-        // ================= DELETE =================
         console.log('[DELETE_CUSTOMER] Executing findByIdAndDelete...');
         const deletedCustomer = await Customer.findByIdAndDelete(customerId);
 

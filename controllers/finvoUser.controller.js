@@ -42,21 +42,19 @@ const postSignup = async (req, res) => {
     const mailOptions = {
       from: "onboarding@resend.dev",
       to: "adegboyegaphilip6@gmail.com",
-      subject: "Welcome to Finvo 🎉", 
+      subject: "Welcome to Finvo",
       html: `
   <div style="margin:0;padding:0;background:#f4f6f8;font-family:Arial,sans-serif;">
 
     <div style="max-width:600px;margin:40px auto;background:#ffffff;border-radius:12px;overflow:hidden;border:1px solid #eaeaea;">
-      
-      <!-- Header -->
+
       <div style="background:#1e88e5;color:#ffffff;text-align:center;padding:35px 20px;">
-        <h1 style="margin:0;font-size:26px;">Welcome to Finvo 🎉</h1>
+        <h1 style="margin:0;font-size:26px;">Welcome to Finvo</h1>
         <p style="margin-top:8px;font-size:14px;opacity:0.9;">Smart Invoice Management</p>
       </div>
 
-      <!-- Content -->
       <div style="padding:35px;color:#333;line-height:1.6;">
-        
+
         <p style="font-size:16px;">Hello <strong>${firstName}</strong>,</p>
 
         <p>
@@ -67,7 +65,6 @@ const postSignup = async (req, res) => {
           You can now create invoices, manage clients, and track payments — all in one place.
         </p>
 
-        <!-- CTA -->
         <div style="text-align:center;margin:30px 0;">
           <a href="https://finvo-app.netlify.app/login"
              style="background:#1e88e5;color:#ffffff;padding:14px 28px;text-decoration:none;border-radius:6px;font-weight:bold;display:inline-block;">
@@ -75,7 +72,6 @@ const postSignup = async (req, res) => {
           </a>
         </div>
 
-        <!-- Features -->
         <div style="background:#f8f9fb;padding:20px;border-radius:8px;margin-top:20px;">
           <p style="margin-top:0;font-weight:bold;">What you can do with Finvo:</p>
           <ul style="padding-left:18px;margin:10px 0;">
@@ -97,7 +93,6 @@ const postSignup = async (req, res) => {
 
       </div>
 
-      <!-- Footer -->
       <div style="text-align:center;padding:20px;font-size:12px;color:#888;background:#fafafa;">
         <p style="margin:5px 0;">© 2026 Finvo. All rights reserved.</p>
         <p style="margin:5px 0;">You’re receiving this email because you signed up for Finvo.</p>

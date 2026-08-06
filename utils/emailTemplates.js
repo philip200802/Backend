@@ -1,7 +1,6 @@
 const BRAND_NAME = "Finvo";
 const BRAND_COLOR = "#5E4A7A";
 const BRAND_ACCENT = "#B8956A";
-// const SUPPORT_EMAIL = "support@finvo.app";
 const SUPPORT_EMAIL = "adegboyegaphilip6@gmail.com";
 
 const formatCurrency = (value) => {
@@ -34,10 +33,10 @@ const clientInvoiceEmail = (
 
     const dueDateFormatted = dueDate
         ? new Date(dueDate).toLocaleDateString("en-US", {
-              day: "numeric",
-              month: "long",
-              year: "numeric",
-          })
+            day: "numeric",
+            month: "long",
+            year: "numeric",
+        })
         : "Not specified";
 
     const taxRate = 0.1;
@@ -53,8 +52,8 @@ const clientInvoiceEmail = (
     const itemsHTML =
         safeItems.length > 0
             ? safeItems
-                  .map(
-                      (item) => `
+                .map(
+                    (item) => `
 <tr>
 <td style="padding:14px;border-bottom:1px solid #eee;">
 ${item.description || ""}
@@ -73,8 +72,8 @@ ${Number(item.qty) || 0}
 </td>
 </tr>
 `
-                  )
-                  .join("")
+                )
+                .join("")
             : `
 <tr>
 <td colspan="4"
@@ -84,7 +83,7 @@ No invoice items available.
 </tr>
 `;
 
-return `
+    return `
 <!DOCTYPE html>
 <html>
 <head>
@@ -143,8 +142,6 @@ Professional Invoice Management
 
 <td style="padding:40px;">
 
-<!-- Greeting -->
-
 <h2 style="margin:0;color:#333;font-size:26px;">
 Hi ${clientName},
 </h2>
@@ -160,8 +157,6 @@ Thank you for choosing <strong>${BRAND_NAME}</strong>.
 Your invoice has been generated successfully.
 Please review the details below and complete payment before the due date.
 </p>
-
-<!-- Invoice Summary -->
 
 <table
 width="100%"
@@ -230,8 +225,6 @@ ${dueDateFormatted}
 
 </table>
 
-<!-- Client -->
-
 <h3 style="
 margin:0 0 12px;
 color:${BRAND_COLOR};
@@ -254,10 +247,9 @@ color:#333;
 ${clientName}
 </div>
 
-${
-description
-?
-`
+${description
+            ?
+            `
 <p style="
 margin-top:12px;
 font-size:14px;
@@ -267,13 +259,11 @@ color:#666;
 ${description}
 </p>
 `
-:
-""
-}
+            :
+            ""
+        }
 
 </div>
-
-<!-- Items -->
 
 <h3 style="
 margin-bottom:15px;
@@ -316,8 +306,6 @@ Total
 
 ${itemsHTML}
 </table>
-
-<!-- Totals -->
 
 <table
 width="100%"
@@ -399,8 +387,6 @@ font-weight:bold;
 
 </table>
 
-<!-- Payment Reminder -->
-
 <div style="
 background:#eef6ff;
 border-left:5px solid ${BRAND_COLOR};
@@ -431,8 +417,6 @@ If payment has already been made, kindly ignore this email.
 </p>
 
 </div>
-
-<!-- Need Help -->
 
 <div style="
 background:#fafafa;
@@ -465,7 +449,7 @@ margin-top:12px;
 font-size:15px;
 ">
 
-📧 ${SUPPORT_EMAIL}
+${SUPPORT_EMAIL}
 
 </p>
 
@@ -487,8 +471,6 @@ We appreciate your business and look forward to serving you again.
 </td>
 
 </tr>
-
-<!-- Footer -->
 
 <tr>
 
@@ -541,7 +523,7 @@ const paymentReceivedEmail = (
     amountPaid
 ) => {
 
-return `
+    return `
 <!DOCTYPE html>
 
 <html>
@@ -651,5 +633,5 @@ Thank you for doing business with <strong>Finvo</strong>.
 module.exports = {
     clientInvoiceEmail,
     paymentReceivedEmail
-};        
+};
 

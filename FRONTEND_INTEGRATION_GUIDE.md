@@ -40,13 +40,13 @@ const InvoiceList = ({ token }) => {
     const getStatusColor = (status) => {
         switch (status) {
             case 'Paid':
-                return '#4caf50'; // Green
+                return '#4caf50'; 
             case 'Pending':
-                return '#ff9800'; // Orange
+                return '#ff9800'; 
             case 'Overdue':
-                return '#f44336'; // Red
+                return '#f44336'; 
             default:
-                return '#9e9e9e'; // Gray
+                return '#9e9e9e'; 
         }
     };
 
@@ -300,8 +300,6 @@ const InvoiceDetail = ({ token }) => {
                     </div>
                 </div>
             </div>
-
-            {/* Items Table */}
             <div style={{ marginBottom: '20px' }}>
                 <h3>Line Items</h3>
                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
@@ -325,8 +323,6 @@ const InvoiceDetail = ({ token }) => {
                     </tbody>
                 </table>
             </div>
-
-            {/* Payment History */}
             {invoice.paymentHistory && invoice.paymentHistory.length > 0 && (
                 <div style={{ marginBottom: '20px' }}>
                     <h3>Payment History</h3>
@@ -352,8 +348,6 @@ const InvoiceDetail = ({ token }) => {
                     </table>
                 </div>
             )}
-
-            {/* Payment Form */}
             {invoice.status !== 'Paid' && (
                 <div style={{ backgroundColor: '#e3f2fd', padding: '20px', borderRadius: '8px' }}>
                     <h3>Record Payment</h3>
@@ -744,4 +738,5 @@ export default App;
 
 ---
 
-That's it! Your invoice system is fully integrated and ready to use! 🎉
+That's it! Your invoice system is fully integrated and ready to use! 
+

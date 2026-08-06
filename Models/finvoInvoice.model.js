@@ -17,26 +17,25 @@ let invoiceSchema = mongoose.Schema({
         default: 'Pending'
     },
     items: [
-  {
-    description: { type: String, required: true },
-    qty: { type: Number, required: true },
-    unitPrice: { type: Number, required: true },
-    total: { type: Number }
-  }
-],
+        {
+            description: { type: String, required: true },
+            qty: { type: Number, required: true },
+            unitPrice: { type: Number, required: true },
+            total: { type: Number }
+        }
+    ],
     owner: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'user',
         required: true
     },
-    // Payment tracking fields
     amountPaid: {
         type: Number,
         default: 0
     },
     amountDue: {
         type: Number,
-        default: function() { return this.amount; }
+        default: function () { return this.amount; }
     },
     dueDate: {
         type: Date

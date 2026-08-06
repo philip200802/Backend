@@ -73,7 +73,6 @@ app.use("/customer", customerRoute);
 
 app.use("/user", userRoute);
 
-// ✅ TEST EMAIL ENDPOINT - For debugging Resend
 app.post("/test-email", async (req, res) => {
     try {
         const { email } = req.body;
@@ -81,8 +80,8 @@ app.post("/test-email", async (req, res) => {
             return res.status(400).json({ message: "Email required" });
         }
 
-        console.log('🧪 [TEST-EMAIL] Starting test...');
-        console.log('🧪 [TEST-EMAIL] API Key exists:', !!process.env.RESEND_API_KEY);
+        console.log('[TEST-EMAIL] Starting test...');
+        console.log('[TEST-EMAIL] API Key exists:', !!process.env.RESEND_API_KEY);
 
         const { Resend } = require('resend');
         const resend = new Resend(process.env.RESEND_API_KEY);
@@ -94,14 +93,14 @@ app.post("/test-email", async (req, res) => {
             html: "<h1>Hello!</h1><p>This is a test email from Finvo backend.</p>"
         });
 
-        console.log('🧪 [TEST-EMAIL] Response:', JSON.stringify(response));
+        console.log('[TEST-EMAIL] Response:', JSON.stringify(response));
 
         res.json({
             message: "Test email sent",
             response: response
         });
     } catch (err) {
-        console.error('🧪 [TEST-EMAIL] Error:', err.message);
+        console.error('[TEST-EMAIL] Error:', err.message);
         res.status(500).json({
             message: "Test email failed",
             error: err.message

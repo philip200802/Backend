@@ -8,19 +8,14 @@ const {
     deleteCustomer
 } = require('../controllers/finvoCustomer.controller');
 
-// Create a new customer
 router.post('/create', createCustomer);
 
-// Get all customers for logged-in user
 router.get('/all', getCustomers);
 
-// Get single customer by ID
 router.get('/:id', getCustomerById);
 
-// Update customer
 router.put('/:id', updateCustomer);
 
-// Delete customer
 router.delete('/:id', deleteCustomer);
 
 module.exports = router;
