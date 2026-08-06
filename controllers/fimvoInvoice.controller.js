@@ -730,6 +730,14 @@ const downloadInvoicePDF = async (req, res) => {
 };
 
 const generateInvoiceReportPDF = async (req, res) => {
+    const authHeader = req.headers.authorization;
+
+if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return res.status(401).json({ message: "No token provided" });
+}
+
+const token = authHeader.split(" ")[1];
+const decoded = jwt.verify(token, JWT_Secret);
     try {
         const { startMonth, startYear, endMonth, endYear } = req.query;
 
@@ -780,23 +788,44 @@ const generateInvoiceReportPDF = async (req, res) => {
         let totalAmount = 0;
         let totalPaid = 0;
 
-        invoices.forEach((inv, index) => {
-          doc.fontSize(12).text(`Total Amount: ${formatCurrency(totalAmount)}`, 100, yPosition);
+      invoices.forEach((inv, index) => {
 
-yPosition += 15;
-  doc.text(
-    `   Amount: ${formatCurrency(inv.amount)} | Paid: ${formatCurrency(inv.amountPaid)} | Due: ${formatCurrency(inv.amountDue)}`,
-    100,
-    yPosition
-);
-            doc.text(`   Status: ${inv.status}`, 100, yPosition);
-            yPosition += 20;
-            doc.text(`   Date: ${new Date(inv.createdAt).toLocaleDateString()}`, 100, yPosition);
-            yPosition += 25;
-            totalAmount += inv.amount;
-            totalPaid += inv.amountPaid;
-        });
+    // create new page if space is finished
+    if (yPosition > 700) {
+        doc.addPage();
+        yPosition = 50;
+    }
 
+
+    doc.fontSize(11)
+        .text(`${index + 1}. Client: ${inv.clientName}`, 100, yPosition);
+
+    yPosition += 18;
+
+    doc.text(
+        `Amount: ${formatCurrency(inv.amount)} | Paid: ${formatCurrency(inv.amountPaid)} | Due: ${formatCurrency(inv.amountDue)}`,
+        100,
+        yPosition
+    );
+
+    yPosition += 18;
+
+    doc.text(`Status: ${inv.status}`, 100, yPosition);
+
+    yPosition += 18;
+
+    doc.text(
+        `Date: ${new Date(inv.createdAt).toLocaleDateString()}`,
+        100,
+        yPosition
+    );
+
+    yPosition += 30;
+
+
+    totalAmount += inv.amount;
+    totalPaid += inv.amountPaid;
+});
         doc.moveTo(100, yPosition).lineTo(500, yPosition).stroke();
         yPosition += 20;
         doc.fontSize(12).text(`Total Amount: $${totalAmount}`, 100, yPosition);
