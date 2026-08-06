@@ -738,137 +738,239 @@ const downloadInvoicePDF = async (req, res) => {
 
 const generateInvoiceReportPDF = async (req, res) => {
     const { startMonth, startYear, endMonth, endYear } = req.query;
-    
+
     try {
-          const authHeader = req.headers.authorization;
+        const authHeader = req.headers.authorization;
 
-if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    return res.status(401).json({ message: "No token provided" });
-}
+        if (!authHeader || !authHeader.startsWith("Bearer ")) {
+            return res.status(401).json({ message: "No token provided" });
+        }
 
-const token = authHeader.split(" ")[1];
-const decoded = jwt.verify(token, JWT_Secret);
-  
+        const token = authHeader.split(" ")[1];
+        const decoded = jwt.verify(token, JWT_Secret);
+
         if (!startMonth || !startYear) {
-            return res.status(400).json({ message: "startMonth and startYear are required" });
+            return res.status(400).json({
+                message: "startMonth and startYear are required"
+            });
         }
 
         const startM = Number(startMonth);
         const startY = Number(startYear);
+
         const endM = endMonth ? Number(endMonth) : startM;
         const endY = endYear ? Number(endYear) : startY;
 
-        if (!Number.isInteger(startM) || !Number.isInteger(endM) || startM < 1 || startM > 12 || endM < 1 || endM > 12) {
-            return res.status(400).json({ message: "Month values must be between 1 and 12" });
+
+        if (
+            !Number.isInteger(startM) ||
+            !Number.isInteger(endM) ||
+            startM < 1 ||
+            startM > 12 ||
+            endM < 1 ||
+            endM > 12
+        ) {
+            return res.status(400).json({
+                message: "Month values must be between 1 and 12"
+            });
         }
 
-        if (!Number.isInteger(startY) || !Number.isInteger(endY)) {
-            return res.status(400).json({ message: "Year values must be valid numbers" });
-        }
 
         const startDate = new Date(startY, startM - 1, 1);
         const endDate = new Date(endY, endM, 1);
 
-       const invoices = await invoice.find({
-    owner: decoded.id,
-    createdAt: { $gte: startDate, $lt: endDate }
-}).populate('owner', 'firstName lastName email');
+
+        const invoices = await invoice.find({
+            owner: decoded.id,
+            createdAt: {
+                $gte: startDate,
+                $lt: endDate
+            }
+        });
+
+
         if (invoices.length === 0) {
-            return res.status(404).json({ message: "No invoices found for this period" });
+            return res.status(404).json({
+                message: "No invoices found for this period"
+            });
         }
 
-        const doc = new PDFDocument({ size: 'A4', margin: 50 });
-        const dateRange = startM === endM && startY === endY
-            ? `${startM}/${startY}`
-            : `${startM}/${startY}-${endM}/${endY}`;
+
+        const doc = new PDFDocument({
+            size: "A4",
+            margin: 50
+        });
+
+
+        const dateRange =
+            startM === endM && startY === endY
+                ? `${startM}/${startY}`
+                : `${startM}/${startY} - ${endM}/${endY}`;
+
+
         const filename = `invoices-${dateRange}.pdf`;
 
-        res.setHeader('Content-Type', 'application/pdf');
-        res.setHeader('Content-Disposition', `attachment; filename=${filename}`);
+
+        res.setHeader(
+            "Content-Type",
+            "application/pdf"
+        );
+
+        res.setHeader(
+            "Content-Disposition",
+            `attachment; filename=${filename}`
+        );
+
+
         doc.pipe(res);
 
-        doc.fontSize(20).text('INVOICES REPORT', 100, 50);
-        doc.fontSize(12).text(`Period: ${dateRange}`, 100, 80);
-        doc.text(`Total Invoices: ${invoices.length}`, 100, 100);
-        doc.moveTo(100, 120).lineTo(500, 120).stroke();
 
-        let yPosition = 140;
+        doc.fontSize(20)
+            .text("FINVO INVOICE REPORT", 100, 50);
+
+
+        doc.fontSize(12)
+            .text(`Period: ${dateRange}`, 100, 80);
+
+
+        doc.text(
+            `Total Invoices: ${invoices.length}`,
+            100,
+            100
+        );
+
+
+        doc.moveTo(100, 120)
+            .lineTo(500, 120)
+            .stroke();
+
+
+        let yPosition = 150;
+
         let totalAmount = 0;
         let totalPaid = 0;
-invoices.forEach((inv, index) => {
 
-    if (yPosition > 700) {
-        doc.addPage();
-        yPosition = 50;
-    }
 
-    doc.fontSize(11)
-        .text(`${index + 1}. Client: ${inv.clientName}`, 50, yPosition);
 
-    yPosition += 18;
+        invoices.forEach((inv, index) => {
 
-    doc.fontSize(10)
-        .text(
-            `Amount: ${formatCurrency(inv.amount)} | Paid: ${formatCurrency(inv.amountPaid)} | Due: ${formatCurrency(inv.amountDue)}`,
-            50,
+
+            if (yPosition > 700) {
+                doc.addPage();
+                yPosition = 50;
+            }
+
+
+            doc.fontSize(11)
+                .text(
+                    `${index + 1}. Client: ${inv.clientName}`,
+                    50,
+                    yPosition
+                );
+
+
+            yPosition += 18;
+
+
+            doc.fontSize(10)
+                .text(
+                    `Amount: ${formatCurrency(inv.amount)} | Paid: ${formatCurrency(inv.amountPaid)} | Due: ${formatCurrency(inv.amountDue)}`,
+                    50,
+                    yPosition
+                );
+
+
+            yPosition += 18;
+
+
+            doc.text(
+                `Status: ${inv.status || "Pending"}`,
+                50,
+                yPosition
+            );
+
+
+            yPosition += 18;
+
+
+            doc.text(
+                `Date: ${new Date(inv.createdAt).toLocaleDateString()}`,
+                50,
+                yPosition
+            );
+
+
+            yPosition += 30;
+
+
+
+            totalAmount += Number(inv.amount || 0);
+            totalPaid += Number(inv.amountPaid || 0);
+
+        });
+
+
+
+        doc.moveTo(100, yPosition)
+            .lineTo(500, yPosition)
+            .stroke();
+
+
+
+        yPosition += 25;
+
+
+        doc.fontSize(12)
+            .text(
+                `Total Amount: ${formatCurrency(totalAmount)}`,
+                100,
+                yPosition
+            );
+
+
+        yPosition += 18;
+
+
+        doc.text(
+            `Total Paid: ${formatCurrency(totalPaid)}`,
+            100,
             yPosition
         );
 
-    yPosition += 18;
 
-    doc.text(
-        `Status: ${inv.status || "Pending"}`,
-        50,
-        yPosition
-    );
-
-    yPosition += 18;
-
-    doc.text(
-        `Date: ${new Date(inv.createdAt).toLocaleDateString()}`,
-        50,
-        yPosition
-    );
-
-    yPosition += 30;
+        yPosition += 18;
 
 
-    totalAmount += inv.amount || 0;
-    totalPaid += inv.amountPaid || 0;
+        doc.text(
+            `Total Due: ${formatCurrency(totalAmount - totalPaid)}`,
+            100,
+            yPosition
+        );
 
-});
+
+        doc.fontSize(10)
+            .text(
+                "Generated by Finvo",
+                100,
+                yPosition + 40
+            );
 
 
-doc.moveTo(100, yPosition)
-    .lineTo(500, yPosition)
-    .stroke();
+        doc.end();
 
-yPosition += 20;
 
-doc.fontSize(12)
-    .text(
-        `Total Amount: ${formatCurrency(totalAmount)}`,
-        100,
-        yPosition
-    );
+    } catch (err) {
 
-yPosition += 15;
+        console.error("PDF REPORT ERROR:", err);
 
-doc.text(
-    `Total Paid: ${formatCurrency(totalPaid)}`,
-    100,
-    yPosition
-);
+        res.status(500).json({
+            message: "Failed to generate PDF",
+            error: err.message
+        });
 
-yPosition += 15;
+    }
+};
 
-doc.text(
-    `Total Due: ${formatCurrency(totalAmount - totalPaid)}`,
-    100,
-    yPosition
-);
-
-doc.end();
 module.exports = {
     createInvoice,
     getInvoices,
