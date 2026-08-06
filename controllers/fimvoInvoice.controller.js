@@ -753,10 +753,10 @@ const generateInvoiceReportPDF = async (req, res) => {
         const startDate = new Date(startY, startM - 1, 1);
         const endDate = new Date(endY, endM, 1);
 
-        const invoices = await invoice.find({
-            createdAt: { $gte: startDate, $lt: endDate }
-        }).populate('owner', 'firstName lastName email');
-
+       const invoices = await invoice.find({
+    owner: decoded.id,
+    createdAt: { $gte: startDate, $lt: endDate }
+}).populate('owner', 'firstName lastName email');
         if (invoices.length === 0) {
             return res.status(404).json({ message: "No invoices found for this period" });
         }
@@ -781,10 +781,14 @@ const generateInvoiceReportPDF = async (req, res) => {
         let totalPaid = 0;
 
         invoices.forEach((inv, index) => {
-            doc.fontSize(11).text(`${index + 1}. Client: ${inv.clientName}`, 100, yPosition);
-            yPosition += 20;
-            doc.text(`   Amount: $${inv.amount} | Paid: $${inv.amountPaid} | Due: $${inv.amountDue}`, 100, yPosition);
-            yPosition += 20;
+          doc.fontSize(12).text(`Total Amount: ${formatCurrency(totalAmount)}`, 100, yPosition);
+
+yPosition += 15;
+  doc.text(
+    `   Amount: ${formatCurrency(inv.amount)} | Paid: ${formatCurrency(inv.amountPaid)} | Due: ${formatCurrency(inv.amountDue)}`,
+    100,
+    yPosition
+);
             doc.text(`   Status: ${inv.status}`, 100, yPosition);
             yPosition += 20;
             doc.text(`   Date: ${new Date(inv.createdAt).toLocaleDateString()}`, 100, yPosition);
@@ -797,10 +801,11 @@ const generateInvoiceReportPDF = async (req, res) => {
         yPosition += 20;
         doc.fontSize(12).text(`Total Amount: $${totalAmount}`, 100, yPosition);
         yPosition += 15;
-        doc.text(`Total Paid: $${totalPaid}`, 100, yPosition);
-        yPosition += 15;
-        doc.text(`Total Due: $${totalAmount - totalPaid}`, 100, yPosition);
+        doc.text(`Total Paid: ${formatCurrency(totalPaid)}`, 100, yPosition);
 
+yPosition += 15;
+
+doc.text(`Total Due: ${formatCurrency(totalAmount - totalPaid)}`, 100, yPosition);
         doc.end();
     } catch (err) {
         res.status(500).json({ message: "Failed to generate PDF", error: err.message });
