@@ -20,7 +20,7 @@ app.set("view engine", "ejs");
 app.set("views", __dirname + "/Views");
 app.use(cors({
     origin: [
-        "https://finvo-app.netlify.app",
+        "https://finvo-dun.vercel.app",
         "http://localhost:5173"
     ],
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
